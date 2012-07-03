@@ -10,7 +10,6 @@ class func(object):
         self.name = name
         self.returns = returns
         params = params.replace('\t', ' ')
-        #params = re.sub(r' *\*', '*', params)
         self.params = list(filter(lambda x: x != '',
                                   map(str.strip, params.split(','))))
 
@@ -21,12 +20,15 @@ constructors = []
 usedconstructors = []
 classallocators = set()
 
+basedir = os.path.dirname(os.path.dirname(sys.argv[1])) + '/'
+
 kinds = set([
     'void', 'GtkWidget*', 'const gchar *', 'gboolean'
 ])
 
 included = set(['gtk/gtkaccelmap.h', 'gtk/gtkaboutdialog.h',
-                'gtk/gtkscalebutton.h'])
+                'gtk/gtkscalebutton.h', 'gtk/gtktreeitem.h',
+                'gtk/gtktext.h', 'gtk/gtktree.h'])
 
 def stripcomments(s):
     return re.sub(r'/\*.+?\*/', '', s, 0, re.DOTALL)
@@ -34,8 +36,8 @@ def stripcomments(s):
 def include_file(path):
     if path not in included:
         included.add(path)
-        if os.path.exists("/usr/include/gtk-3.0/" + path):
-            process_file("/usr/include/gtk-3.0/" + path)
+        if os.path.exists(basedir + path):
+            process_file(basedir + path)
 
 def process_file(fn):
     logical_lines = []
@@ -50,7 +52,8 @@ def process_file(fn):
             enums.extend(list(map(str.strip,
                             map(lambda x: x.partition('=')[0],
                                 map(stripcomments,
-                                                 m.group(1).split(','))))))
+                                        re.sub('#.*', '',m.group(1)).split(
+                                            ','))))))
     for line in logical_lines:
         line = line.replace('\n', '')
         for k in kinds:
@@ -61,6 +64,9 @@ def process_file(fn):
                 if not name:
                     continue
                 if name.startswith('gdk_') or name.startswith('_'):
+                    continue
+                if (name == 'gtk_widget_destroyed'
+                    or name == 'gtk_rc_set_default_files'):
                     continue
                 methods[name] = func(name, k,
                                      line.split('(', 1)[1].split(')', 1)[0])
