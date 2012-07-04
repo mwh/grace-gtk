@@ -34,7 +34,8 @@ if len(sys.argv) < 2:
 basedir = os.path.dirname(os.path.dirname(sys.argv[1])) + '/'
 
 kinds = set([
-    'void', 'GtkWidget*', 'const gchar *', 'const gchar*', 'gboolean'
+    'void', 'GtkWidget*', 'const gchar *', 'const gchar*', 'gboolean',
+    'GtkWidget *'
 ])
 
 included = set(['gtk/gtkaccelmap.h', 'gtk/gtkaboutdialog.h',
@@ -78,7 +79,8 @@ def process_file(fn):
                 if name.startswith('gdk_') or name.startswith('_'):
                     continue
                 if (name == 'gtk_widget_destroyed'
-                    or name == 'gtk_rc_set_default_files'):
+                    or name == 'gtk_rc_set_default_files'
+                    or name == 'grace_gtk_icon_theme_set_search_path'):
                     continue
                 methods[name] = func(name, k,
                                      line.split('(', 1)[1].split(')', 1)[0])
@@ -100,8 +102,10 @@ def coerce2gtk(dest, src):
         return '(gboolean)istrue(' + src + ')'
     elif dest.endswith('Type'):
         return 'integerfromAny(' + src + ')'
-    elif dest == 'GtkWidget *':
+    elif dest == 'GtkWidget *' or dest == 'GtkWidget*':
         return '((struct GraceGtkWidget*)' + src + ')->widget'
+    elif dest == 'gint':
+        return 'integerfromAny(' + src + ')'
     else:
         raise FailedCoerce(dest)
         return '/*unknown: ' + dest + '*/ NULL'
@@ -193,6 +197,7 @@ for k, m in methods.items():
     selftype = ''.join(m.params[0].partition('*')[0:2])
     if k.endswith('_new'):
         constructors.append(k)
+        classof(k)
         continue
     elif selftype != 'void' and not selftype.endswith('*'):
         continue
