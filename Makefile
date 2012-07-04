@@ -13,3 +13,8 @@ gtk.c: gtkwrap.py
 gtk.gso: gtk.c
 	gcc -o gtk.gso -I$(MINIGRACE_HEADERS) `pkg-config --cflags gtk+-$(GTK_VERSION)` `pkg-config --libs gtk+-$(GTK_VERSION)` -fPIC -shared gtk.c
 
+clean:
+	rm -f gtk.gso gtk.c
+	rm -f helloworld helloworld.c helloworld.gcn
+
+.PHONY: clean all
