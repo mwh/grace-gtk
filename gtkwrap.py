@@ -247,6 +247,7 @@ for cls in classes:
     print("""add_Method(GTK""" + cls + """, "==", &Object_Equals);
     add_Method(GTK""" + cls + """, "!=", &Object_NotEquals);
     add_Method(GTK""" + cls + """, "asString", &Object_asString);
+    add_Method(GTK""" + cls + """, "on()do", &grace_g_signal_connect);
     add_Method(GTK""" + cls + """, "connect", &grace_g_signal_connect);""")
     for k in classes[cls]:
         gnm = k.split('_', 2)[-1]
