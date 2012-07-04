@@ -80,7 +80,7 @@ def process_file(fn):
                     continue
                 if (name == 'gtk_widget_destroyed'
                     or name == 'gtk_rc_set_default_files'
-                    or name == 'grace_gtk_icon_theme_set_search_path'):
+                    or name == 'gtk_icon_theme_set_search_path'):
                     continue
                 methods[name] = func(name, k,
                                      line.split('(', 1)[1].split(')', 1)[0])
@@ -126,6 +126,10 @@ def doconstructor(k, m):
     print("Object grace_" + k + "(Object self, int argc, int *argcv,")
     print("    Object *argv, int flags) {")
     if casts:
+        print('    if (argc < 1 || argcv[0] < ' + str(len(casts)) + ')')
+        print('        die("' + k[4:-4] + ' requires ' + str(len(casts))
+              + ' arguments, got %i. Signature: ' + k[4:-4] + '('
+              + ', '.join(m.params) + ').", argc);')
         print("    GtkWidget *w = " + k + "(" + ','.join(casts) + ');')
     else:
         print("    GtkWidget *w = " + k + "();")
@@ -187,6 +191,8 @@ def classof(k):
     cls = ''
     if k.startswith('gtk_accel_group_'):
         cls = 'accel_group'
+    elif k.startswith('gtk_drawing_area_'):
+        cls = 'drawing_area'
     else:
         cls = k.split('_')[1]
     if cls not in classes:
