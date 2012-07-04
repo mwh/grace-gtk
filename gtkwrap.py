@@ -129,7 +129,7 @@ def doconstructor(k, m):
         print('    if (argc < 1 || argcv[0] < ' + str(len(casts)) + ')')
         print('        die("' + k[4:-4] + ' requires ' + str(len(casts))
               + ' arguments, got %i. Signature: ' + k[4:-4] + '('
-              + ', '.join(m.params) + ').", argc);')
+              + ', '.join(m.params) + ').", argcv[0]);')
         print("    GtkWidget *w = " + k + "(" + ','.join(casts) + ');')
     else:
         print("    GtkWidget *w = " + k + "();")
@@ -222,6 +222,10 @@ for k, m in methods.items():
     else:
         print("  {} s = ({})(((struct GraceGtkWidget *)self)->widget);".format(selftype, selftype))
         if casts:
+            print('    if (argc < 1 || argcv[0] < ' + str(len(casts)) + ')')
+            print('        die("GTK method requires ' + str(len(casts))
+                  + ' arguments, got %i. Signature: ' + k + '('
+                  + ', '.join(m.params[1:]) + ').", argcv[0]);')
             coercereturn(m, "  " + k + "(s, " + ','.join(casts) + ')')
         else:
             coercereturn(m, "  " + k + "(s)")
