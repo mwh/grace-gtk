@@ -8,6 +8,7 @@ button.label := "Hello, world!"
 
 button.connect("clicked", { gtk.main_quit })
 window.add(button)
+window.connect("destroy", { gtk.main_quit })
 
 window.show_all
 

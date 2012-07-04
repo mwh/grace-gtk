@@ -34,7 +34,7 @@ if len(sys.argv) < 2:
 basedir = os.path.dirname(os.path.dirname(sys.argv[1])) + '/'
 
 kinds = set([
-    'void', 'GtkWidget*', 'const gchar *', 'gboolean'
+    'void', 'GtkWidget*', 'const gchar *', 'const gchar*', 'gboolean'
 ])
 
 included = set(['gtk/gtkaccelmap.h', 'gtk/gtkaboutdialog.h',
@@ -54,6 +54,7 @@ def process_file(fn):
     logical_lines = []
     with open(fn) as fp:
         data = fp.read()
+    data = stripcomments(data)
     logical_lines = data.split(";")
     for inc in re.findall('#include <(.+?)>', data):
         include_file(inc)
@@ -93,7 +94,7 @@ def coerce2gtk(dest, src):
         dest = re.sub(' +', ' ', dest.partition('*')[0].strip()) + ' *'
     else:
         dest = dest.rpartition(' ')[0].strip()
-    if dest == 'const gchar *':
+    if dest == 'const gchar *' or dest == 'const gchar*':
         return '(const gchar *)grcstring(' + src + ')'
     elif dest == 'gboolean':
         return '(gboolean)istrue(' + src + ')'
@@ -172,11 +173,21 @@ Object grace_g_signal_connect(Object self, int argc, int *argcv,
 """)
 
 def coercereturn(m, s):
-    if m.returns == 'const gchar *':
+    if m.returns == 'const gchar *' or m.returns == 'const gchar*':
         print("    return alloc_String(" + s + ");")
     else:
         print("    " + s + ";")
         print("    return none;")
+
+def classof(k):
+    cls = ''
+    if k.startswith('gtk_accel_group_'):
+        cls = 'accel_group'
+    else:
+        cls = k.split('_')[1]
+    if cls not in classes:
+        classes[cls] = []
+    return cls
 
 for k, m in methods.items():
     selftype = ''.join(m.params[0].partition('*')[0:2])
@@ -204,9 +215,7 @@ for k, m in methods.items():
         else:
             coercereturn(m, "  " + k + "(s)")
     print("}")
-    cls = k.split('_')[1]
-    if cls not in classes:
-        classes[cls] = []
+    cls = classof(k)
     classes[cls].append(k)
 
 for cls in classes:
