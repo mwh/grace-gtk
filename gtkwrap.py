@@ -69,7 +69,7 @@ def process_file(fn):
         line = line.replace('\n', '')
         for k in kinds:
             if line.startswith(k) and '(' in line:
-                name = line[len(k) + 1:].strip().split(' ', 1)[0]
+                name = line[len(k):].strip().split(' ', 1)[0]
                 if '\t' in name:
                     name = name.partition('\t')[0]
                 if not name:
