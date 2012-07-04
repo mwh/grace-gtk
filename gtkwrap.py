@@ -144,6 +144,8 @@ print("#include \"gracelib.h\"")
 print("#include <gtk/gtk.h>")
 print("#include <gdk/gdk.h>")
 print("""
+Object none;
+
 struct GraceGtkWidget {
     int32_t flags;
     ClassData class;
@@ -169,6 +171,13 @@ Object grace_g_signal_connect(Object self, int argc, int *argcv,
 }
 """)
 
+def coercereturn(m, s):
+    if m.returns == 'const gchar *':
+        print("    return alloc_String(" + s + ");")
+    else:
+        print("    " + s + ";")
+        print("    return none;")
+
 for k, m in methods.items():
     selftype = ''.join(m.params[0].partition('*')[0:2])
     if k.endswith('_new'):
@@ -187,13 +196,13 @@ for k, m in methods.items():
           + "Object *argv, int flags) {")
     if selftype == 'void':
         print("  " + k + "(" + ','.join(casts) + ');')
+        print("  return none;")
     else:
         print("  {} s = ({})(((struct GraceGtkWidget *)self)->widget);".format(selftype, selftype))
         if casts:
-            print("  " + k + "(s, " + ','.join(casts) + ');')
+            coercereturn(m, "  " + k + "(s, " + ','.join(casts) + ')')
         else:
-            print("  " + k + "(s);")
-    print("  return self;")
+            coercereturn(m, "  " + k + "(s)")
     print("}")
     cls = k.split('_')[1]
     if cls not in classes:
@@ -202,8 +211,10 @@ for k, m in methods.items():
 
 for cls in classes:
     if cls != 'widget' and cls != 'container':
-        classes[cls].extend(classes['widget'])
-        classes[cls].extend(classes['container'])
+        if 'widget' in classes:
+            classes[cls].extend(classes['widget'])
+        if 'container' in classes:
+            classes[cls].extend(classes['container'])
 
 for cls in classes:
     classallocators.add('GTK' + cls)
@@ -218,8 +229,13 @@ for cls in classes:
     add_Method(GTK""" + cls + """, "asString", &Object_asString);
     add_Method(GTK""" + cls + """, "connect", &grace_g_signal_connect);""")
     for k in classes[cls]:
+        gnm = k.split('_', 2)[-1]
+        if gnm.startswith('get_') and len(methods[k].params) == 1:
+            gnm = gnm[4:]
+        elif gnm.startswith('set_') and len(methods[k].params) == 2:
+            gnm = gnm[4:] + ":="
         print("  add_Method(GTK{}, \"{}\", &grace_{});".format(cls, 
-            k.split('_', 2)[-1], k))
+            gnm, k))
     print("  return GTK" + cls + ";")
     print("}")
 
