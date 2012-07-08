@@ -6,9 +6,9 @@ window.title := "Hi!"
 def button = gtk.button
 button.label := "Hello, world!"
 
-button.connect("clicked", { gtk.main_quit })
+button.on "clicked" do { gtk.main_quit }
 window.add(button)
-window.connect("destroy", { gtk.main_quit })
+window.on "destroy" do { gtk.main_quit }
 
 window.show_all
 

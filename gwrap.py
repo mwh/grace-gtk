@@ -32,10 +32,13 @@ if len(sys.argv) < 2:
     exit(0)
 
 basedir = os.path.dirname(os.path.dirname(sys.argv[1])) + '/'
+mod = os.path.basename(sys.argv[1]).replace('.h', '')
+MOD = mod.upper()
 
 kinds = set([
     'void', 'GtkWidget*', 'const gchar *', 'const gchar*', 'gboolean',
-    'GtkWidget *'
+    'GtkWidget *', 'cairo_t *', 'GdkWindow *', 'cairo_public void',
+    'GtkOrientation'
 ])
 
 included = set(['gtk/gtkaccelmap.h', 'gtk/gtkaboutdialog.h',
@@ -51,6 +54,9 @@ def include_file(path):
         if os.path.exists(basedir + path):
             process_file(basedir + path)
 
+def define_constant(con):
+    enums.append(MOD + '_' + con)
+
 def process_file(fn):
     logical_lines = []
     with open(fn) as fp:
@@ -59,6 +65,9 @@ def process_file(fn):
     logical_lines = data.split(";")
     for inc in re.findall('#include <(.+?)>', data):
         include_file(inc)
+    for con in re.findall('#define ' + MOD + '_(.+?) [0-9a-fx]+$', data,
+                         re.MULTILINE):
+        define_constant(con)
     for enm in re.findall(r'typedef enum.+?;', data, re.DOTALL):
         m = re.match('[^{]*\\{([^}]+)\\}', stripcomments(enm))
         if m is not None:
@@ -68,7 +77,7 @@ def process_file(fn):
                                         re.sub('#.*', '',m.group(1)).split(
                                             ','))))))
     for line in logical_lines:
-        line = line.replace('\n', '')
+        line = line.replace('\n', ' ').strip()
         for k in kinds:
             if line.startswith(k) and '(' in line:
                 name = line[len(k):].strip().split(' ', 1)[0]
@@ -76,16 +85,22 @@ def process_file(fn):
                     name = name.partition('\t')[0]
                 if not name:
                     continue
-                if name.startswith('gdk_') or name.startswith('_'):
+                if name.startswith('_'):
+                    continue
+                if not name.startswith(mod + '_'):
                     continue
                 if (name == 'gtk_widget_destroyed'
                     or name == 'gtk_rc_set_default_files'
-                    or name == 'gtk_icon_theme_set_search_path'):
+                    or name == 'gtk_icon_theme_set_search_path'
+                    or name == 'gdk_device_free_history'):
                     continue
                 methods[name] = func(name, k,
                                      line.split('(', 1)[1].split(')', 1)[0])
 
 process_file(sys.argv[1])
+
+for f in sys.argv[2:]:
+    include_file(f[len(basedir):])
 
 class FailedCoerce(Exception):
     pass
@@ -104,7 +119,15 @@ def coerce2gtk(dest, src):
         return 'integerfromAny(' + src + ')'
     elif dest == 'GtkWidget *' or dest == 'GtkWidget*':
         return '((struct GraceGtkWidget*)' + src + ')->widget'
+    elif dest == 'cairo_t *':
+        return '((struct GraceCairoT*)' + src + ')->value'
+    elif dest == 'GdkWindow *':
+        return '(GdkWindow *)(((struct GraceGtkWidget*)' + src + ')->widget)'
     elif dest == 'gint':
+        return 'integerfromAny(' + src + ')'
+    elif dest == 'double':
+        return '(*(double*)' + src + '->data)'
+    elif dest == 'GtkOrientation':
         return 'integerfromAny(' + src + ')'
     else:
         raise FailedCoerce(dest)
@@ -112,7 +135,7 @@ def coerce2gtk(dest, src):
 
 def doconstructor(k, m):
     cls = k[4:-4]
-    if 'GTK' + cls not in classallocators:
+    if MOD + cls not in classallocators:
         return
     casts = []
     try:
@@ -135,7 +158,7 @@ def doconstructor(k, m):
         print("    GtkWidget *w = " + k + "();")
     print("""
     Object o = alloc_obj(sizeof(struct GraceGtkWidget) - sizeof(struct Object),
-         alloc_class_GTK""" + cls + """());
+         alloc_class_""" + MOD + cls + """());
     struct GraceGtkWidget *ggw = (struct GraceGtkWidget *)o;
     ggw->widget = w;
     return o;""")
@@ -152,14 +175,23 @@ print("""
 print("#include \"gracelib.h\"")
 print("#include <gtk/gtk.h>")
 print("#include <gdk/gdk.h>")
+for f in sys.argv[2:]:
+    print("#include <" + f[len(basedir):] + ">")
 print("""
-Object none;
+extern Object none;
 
 struct GraceGtkWidget {
     int32_t flags;
     ClassData class;
     GtkWidget *widget;
 };
+struct GraceCairoT {
+    int32_t flags;
+    ClassData class;
+    cairo_t *value;
+};
+
+ClassData alloc_class_CAIROcairo();
 
 Object Object_asString(Object, int nparts, int *argcv,
         Object*, int flags);
@@ -168,21 +200,56 @@ Object Object_Equals(Object, int, int*,
 Object Object_NotEquals(Object, int, int*,
         Object*, int);
 
-void grace_gtk_callback_block(GtkWidget *widget, gpointer block) {
+Object alloc_GtkWidget(GtkWidget *w);
+static void grace_gtk_callback_block0(GtkWidget *widget, gpointer block) {
     callmethod((Object)block, "apply", 0, NULL, NULL);
 }
-Object grace_g_signal_connect(Object self, int argc, int *argcv,
+Object alloc_CairoT(cairo_t *);
+static void grace_gtk_callback_block1(GtkWidget *widget, cairo_t *tmp1,
+      gpointer block) {
+    Object ct = alloc_CairoT(tmp1);
+    int i[] = {1};
+    callmethod((Object)block, "apply", 1, i, &ct);
+}
+static Object grace_g_signal_connect(Object self, int argc, int *argcv,
       Object *argv, int flags) {
     struct GraceGtkWidget *w = (struct GraceGtkWidget *)self;
-    g_signal_connect(w->widget, grcstring(argv[0]),
-      G_CALLBACK(grace_gtk_callback_block), argv[1]);
+    char *c = grcstring(argv[0]);
+    guint tp = G_OBJECT_TYPE(w->widget);
+    guint sig = g_signal_lookup(c, tp);
+    GSignalQuery query;
+    g_signal_query(sig, &query);
+    fprintf(stderr, "%i %s %i %i\\n", query.signal_id, query.signal_name,
+      query.itype, query.n_params);
+    if (query.n_params == 0) {
+        g_signal_connect(w->widget, c,
+          G_CALLBACK(grace_gtk_callback_block0), argv[1]);
+    } else if (query.n_params == 1) {
+        g_signal_connect(w->widget, c,
+          G_CALLBACK(grace_gtk_callback_block1), argv[1]);
+    }
     return self;
+}
+ClassData GraceCairoT;
+Object alloc_CairoT(cairo_t *val) {
+    if (!GraceCairoT) {
+        GraceCairoT = alloc_class("CairoT", 2);
+    }
+    Object o = alloc_obj(sizeof(struct GraceCairoT) - sizeof(struct Object),
+        alloc_class_CAIROcairo());
+    struct GraceCairoT *t = (struct GraceCairoT *)o;
+    t->value = val;
+    return o;
 }
 """)
 
 def coercereturn(m, s):
     if m.returns == 'const gchar *' or m.returns == 'const gchar*':
         print("    return alloc_String(" + s + ");")
+    elif m.returns == 'cairo_t *':
+        print("    return alloc_CairoT(" + s + ");")
+    elif m.returns == 'GdkWindow *':
+        print("    return alloc_GtkWidget((GtkWidget *)(" + s + "));")
     else:
         print("    " + s + ";")
         print("    return none;")
@@ -193,6 +260,8 @@ def classof(k):
         cls = 'accel_group'
     elif k.startswith('gtk_drawing_area_'):
         cls = 'drawing_area'
+    elif k.startswith('cairo_'):
+        cls = 'cairo'
     else:
         cls = k.split('_')[1]
     if cls not in classes:
@@ -220,10 +289,13 @@ for k, m in methods.items():
         print("  " + k + "(" + ','.join(casts) + ');')
         print("  return none;")
     else:
-        print("  {} s = ({})(((struct GraceGtkWidget *)self)->widget);".format(selftype, selftype))
+        if selftype == 'cairo_t *':
+            print("    cairo_t *s = ((struct GraceCairoT*)self)->value;")
+        else:
+            print("  {} s = ({})(((struct GraceGtkWidget *)self)->widget);".format(selftype, selftype))
         if casts:
             print('    if (argc < 1 || argcv[0] < ' + str(len(casts)) + ')')
-            print('        die("GTK method requires ' + str(len(casts))
+            print('        die("' + mod + ' method requires ' + str(len(casts))
                   + ' arguments, got %i. Signature: ' + k + '('
                   + ', '.join(m.params[1:]) + ').", argcv[0]);')
             coercereturn(m, "  " + k + "(s, " + ','.join(casts) + ')')
@@ -241,55 +313,80 @@ for cls in classes:
             classes[cls].extend(classes['container'])
 
 for cls in classes:
-    classallocators.add('GTK' + cls)
-    print("ClassData GTK" + cls + ";")
-    print("ClassData alloc_class_GTK" + cls + "() {")
-    print("  if (GTK" + cls + ") return GTK" + cls + ";")
-    print("  GTK{} = alloc_class(\"{}\", {});".format(cls, cls,
+    classallocators.add(MOD + cls)
+    print("ClassData " + MOD + "" + cls + ";")
+    print("ClassData alloc_class_" + MOD + "" + cls + "() {")
+    print("  if (" + MOD + "" + cls + ") return " + MOD + "" + cls + ";")
+    print("  " + MOD + "{} = alloc_class(\"{}\", {});".format(cls, cls,
                                                       5+len(classes[cls])))
-    print("  gc_root((Object)GTK" + cls + ");")
-    print("""add_Method(GTK""" + cls + """, "==", &Object_Equals);
-    add_Method(GTK""" + cls + """, "!=", &Object_NotEquals);
-    add_Method(GTK""" + cls + """, "asString", &Object_asString);
-    add_Method(GTK""" + cls + """, "on()do", &grace_g_signal_connect);
-    add_Method(GTK""" + cls + """, "connect", &grace_g_signal_connect);""")
+    print("  gc_root((Object)" + MOD + "" + cls + ");")
+    print("""add_Method(""" + MOD + """""" + cls + """, "==", &Object_Equals);
+    add_Method(""" + MOD + """""" + cls + """, "!=", &Object_NotEquals);
+    add_Method(""" + MOD + """""" + cls + """, "asString", &Object_asString);
+    add_Method(""" + MOD + """""" + cls + """, "on()do", &grace_g_signal_connect);
+    add_Method(""" + MOD + """""" + cls + """, "connect", &grace_g_signal_connect);""")
     for k in classes[cls]:
         gnm = k.split('_', 2)[-1]
+        if cls == 'cairo':
+            gnm = k.split('_', 1)[-1]
         if gnm.startswith('get_') and len(methods[k].params) == 1:
             gnm = gnm[4:]
         elif gnm.startswith('set_') and len(methods[k].params) == 2:
             gnm = gnm[4:] + ":="
-        print("  add_Method(GTK{}, \"{}\", &grace_{});".format(cls, 
+        print("  add_Method({}{}, \"{}\", &grace_{});".format(MOD, cls, 
             gnm, k))
-    print("  return GTK" + cls + ";")
+    print("  return " + MOD + cls + ";")
     print("}")
 
 for con in constructors:
     doconstructor(con, methods[con])
 
 for x in enums:
-    print("Object grace_gtk_" + x + "(Object self, int argc, int *argcv,")
+    print("Object grace_" + mod + "_" + x
+          + "(Object self, int argc, int *argcv,")
     print("    Object *args, int flags) {")
     print("    return alloc_Float64(" + x + ");")
     print("}")
 
+if mod == 'gdk':
+    print("""
+Object grace_gdk_cairo_create(Object self, int nparts, int *argcv,
+          Object *argv, int flags) {
+    struct GraceGtkWidget *w = (struct GraceGtkWidget *)self;
+    return alloc_CairoT(gdk_cairo_create((GdkWindow *)(w->widget)));
+}
+""")
+elif mod == 'gtk':
+    print("""
+Object alloc_GtkWidget(GtkWidget *widget) {
+    Object o = alloc_obj(sizeof(struct GraceGtkWidget) - sizeof(struct Object),
+      GTKwidget);
+    struct GraceGtkWidget *w = (struct GraceGtkWidget *)o;
+    w->widget = widget;
+    return o;
+}""")
+
 gtk_size = len(classes) + len(enums) + 3
 print("""
-Object gtkmodule;
-Object module_gtk_init() {
-    if (gtkmodule)
-        return gtkmodule;
+Object """ + mod + """module;
+Object module_""" + mod + """_init() {
+    if (""" + mod + """module)
+        return """ + mod + """module;
     int n = 0;
     gtk_init(&n, NULL);
-    ClassData c = alloc_class("Module<gtk>", """ + str(gtk_size) + ");")
+    ClassData c = alloc_class("Module<""" + mod + """>", """
+      + str(gtk_size) + ");")
 for x in enums:
-    print("    add_Method(c, \"" + x + "\", &grace_gtk_" + x + ");")
+    print("    add_Method(c, \"" + x + "\", &grace_" + mod + "_" + x + ");")
 for x in usedconstructors:
     cls = x[4:-4]
     print("    add_Method(c, \"" + cls + "\", &grace_" + x + ");")
-print("    add_Method(c, \"main\", &grace_gtk_main);")
-print("    add_Method(c, \"main_quit\", &grace_gtk_main_quit);")
-print("    add_Method(c, \"connect\", &grace_g_signal_connect);")
-print("    gtkmodule = alloc_obj(sizeof(Object), c);")
-print("    return gtkmodule;")
+if mod == 'gtk':
+    print("    add_Method(c, \"main\", &grace_gtk_main);")
+    print("    add_Method(c, \"main_quit\", &grace_gtk_main_quit);")
+    print("    add_Method(c, \"connect\", &grace_g_signal_connect);")
+elif mod == 'gdk':
+    print("    add_Method(c, \"cairo\", &grace_gdk_cairo_create);")
+print("    " + mod + "module = alloc_obj(sizeof(Object), c);")
+print("    return " + mod + "module;")
 print("}")
