@@ -1,7 +1,6 @@
 // GTK+ 2 drawing example (not compatible with GTK+ 3)
 import gtk
 import gdk
-import cairo
 
 import sys
 if (gtk.GTK_MAJOR_VERSION != 2) then {
