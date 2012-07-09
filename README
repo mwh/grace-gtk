@@ -10,6 +10,12 @@ determined by what it knows how to translate back and forth, and
 available from the dynamic module "gtk". There is a simple example
 script in the repository creating a "Hello world" window.
 
+Binding modules for "gdk" and "cairo" are also generated. Both of these
+modules must be found in order for gtk to import correctly, but neither
+needs to be imported directly if not desired. Two examples using Cairo
+to draw pictures are in drawing.grace (for GTK+ 3) and drawing2.grace
+(for GTK+ 2).
+
 Licensing
 ---------
 This program is free software: you can redistribute it and/or modify
