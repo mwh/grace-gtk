@@ -220,6 +220,7 @@ static Object grace_g_signal_connect(Object self, int argc, int *argcv,
     guint sig = g_signal_lookup(c, tp);
     GSignalQuery query;
     g_signal_query(sig, &query);
+    gc_root(argv[1]);
     if (query.n_params == 0) {
         g_signal_connect(w->widget, c,
           G_CALLBACK(grace_gtk_callback_block0), argv[1]);
