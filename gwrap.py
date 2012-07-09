@@ -78,6 +78,7 @@ def process_file(fn):
                                             ','))))))
     for line in logical_lines:
         line = line.replace('\n', ' ').strip()
+        line = re.sub(' +\*', ' *', line)
         for k in kinds:
             if line.startswith(k) and '(' in line:
                 name = line[len(k):].strip().split(' ', 1)[0]
@@ -219,8 +220,6 @@ static Object grace_g_signal_connect(Object self, int argc, int *argcv,
     guint sig = g_signal_lookup(c, tp);
     GSignalQuery query;
     g_signal_query(sig, &query);
-    fprintf(stderr, "%i %s %i %i\\n", query.signal_id, query.signal_name,
-      query.itype, query.n_params);
     if (query.n_params == 0) {
         g_signal_connect(w->widget, c,
           G_CALLBACK(grace_gtk_callback_block0), argv[1]);
@@ -352,7 +351,7 @@ if mod == 'gdk':
     print("""
 Object grace_gdk_cairo_create(Object self, int nparts, int *argcv,
           Object *argv, int flags) {
-    struct GraceGtkWidget *w = (struct GraceGtkWidget *)self;
+    struct GraceGtkWidget *w = (struct GraceGtkWidget *)argv[0];
     return alloc_CairoT(gdk_cairo_create((GdkWindow *)(w->widget)));
 }
 """)
@@ -360,7 +359,7 @@ elif mod == 'gtk':
     print("""
 Object alloc_GtkWidget(GtkWidget *widget) {
     Object o = alloc_obj(sizeof(struct GraceGtkWidget) - sizeof(struct Object),
-      GTKwidget);
+      alloc_class_GTKwidget());
     struct GraceGtkWidget *w = (struct GraceGtkWidget *)o;
     w->widget = widget;
     return o;
