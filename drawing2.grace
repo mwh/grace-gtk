@@ -3,6 +3,13 @@ import gtk
 import gdk
 import cairo
 
+import sys
+if (gtk.GTK_MAJOR_VERSION != 2) then {
+    print "Error: This example is only compatible with GTK+ 2."
+    print "drawing.grace is the GTK+ 3 version of the drawing sample."
+    sys.exit(1)
+}
+
 def window = gtk.window(gtk.GTK_WINDOW_TOPLEVEL)
 window.title := "Hi!"
 
