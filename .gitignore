@@ -1,2 +1,8 @@
 gtk.c
-gtk.gso
+*.gso
+*.c
+*.gcn
+stdin_minigrace
+drawing
+drawing2
+helloworld
