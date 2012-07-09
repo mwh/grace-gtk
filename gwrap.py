@@ -65,7 +65,7 @@ def process_file(fn):
     logical_lines = data.split(";")
     for inc in re.findall('#include <(.+?)>', data):
         include_file(inc)
-    for con in re.findall('#define ' + MOD + '_(.+?) [0-9a-fx]+$', data,
+    for con in re.findall('#define ' + MOD + r'_([^() ]+?)\s+\(?[0-9a-fx]+\)?$', data,
                          re.MULTILINE):
         define_constant(con)
     for enm in re.findall(r'typedef enum.+?;', data, re.DOTALL):
