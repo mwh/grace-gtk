@@ -372,7 +372,11 @@ Object module_""" + mod + """_init() {
     if (""" + mod + """module)
         return """ + mod + """module;
     int n = 0;
-    gtk_init(&n, NULL);
+    gtk_init(&n, NULL);""")
+if mod == 'gtk':
+    print("""dlmodule("gdk");
+dlmodule("cairo");""")
+print("""
     ClassData c = alloc_class("Module<""" + mod + """>", """
       + str(gtk_size) + ");")
 for x in enums:
