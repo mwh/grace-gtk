@@ -1,12 +1,11 @@
 // GTK+ 2 drawing example (not compatible with GTK+ 3)
-import gtk
-import gdk
+def gtk = platform.gtk
+def gdk = platform.gdk
 
-import sys
 if (gtk.GTK_MAJOR_VERSION != 2) then {
     print "Error: This example is only compatible with GTK+ 2."
     print "drawing.grace is the GTK+ 3 version of the drawing sample."
-    sys.exit(1)
+    platform.sys.exit(1)
 }
 
 def window = gtk.window(gtk.GTK_WINDOW_TOPLEVEL)
