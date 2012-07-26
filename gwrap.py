@@ -277,6 +277,7 @@ static Object grace_gtk_accel_group_connect(Object self, int argc, int *argcv,
       Object *argv, int flags) {
     struct GraceGtkWidget *w = (struct GraceGtkWidget *)self;
     GtkAccelGroup *ag = (GtkAccelGroup *)w->widget;
+    gc_root(argv[1]);
     guint key = integerfromAny(argv[0]);
     gtk_accel_group_connect(ag, key, 0, 0, grace_gclosure(argv[1]));
     return self;
