@@ -22,6 +22,9 @@ vbox.add(da)
 vbox.add(button)
 window.add(vbox)
 window.on "destroy" do { gtk.main_quit }
+def accelgroup = gtk.accel_group
+accelgroup.accel_connect(platform.gdk.GDK_KEY_Escape, { gtk.main_quit })
+window.add_accel_group(accelgroup)
 
 da.app_paintable := true
 
