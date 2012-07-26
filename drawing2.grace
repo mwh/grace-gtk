@@ -12,9 +12,9 @@ def window = gtk.window(gtk.GTK_WINDOW_TOPLEVEL)
 window.title := "Simple drawing demo"
 
 def button = gtk.button
-button.label := "Cycle"
+button.label := "Change colour"
 
-def vbox = gtk.vbox(true, 6)
+def vbox = gtk.vbox(false, 6)
 
 def da = gtk.drawing_area
 da.set_size_request(400, 300)
