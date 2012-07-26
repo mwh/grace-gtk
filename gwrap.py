@@ -293,10 +293,22 @@ Object grace_GdkEvent_keyval(Object self, int argc, int *argcv, Object *argv,
     struct GraceGdkEvent *s = (struct GraceGdkEvent *)self;
     return alloc_Float64(((GdkEventKey *)s->value)->keyval);
 }
+Object grace_GdkEvent_x(Object self, int argc, int *argcv, Object *argv,
+    int flags) {
+    struct GraceGdkEvent *s = (struct GraceGdkEvent *)self;
+    return alloc_Float64((int)((GdkEventButton *)s->value)->x);
+}
+Object grace_GdkEvent_y(Object self, int argc, int *argcv, Object *argv,
+    int flags) {
+    struct GraceGdkEvent *s = (struct GraceGdkEvent *)self;
+    return alloc_Float64((int)((GdkEventButton *)s->value)->y);
+}
 Object alloc_GdkEvent(GdkEvent *val) {
     if (!GraceGdkEvent) {
-        GraceGdkEvent = alloc_class("GdkEvent", 1);
+        GraceGdkEvent = alloc_class("GdkEvent", 3);
         add_Method(GraceGdkEvent, "keyval", &grace_GdkEvent_keyval);
+        add_Method(GraceGdkEvent, "x", &grace_GdkEvent_x);
+        add_Method(GraceGdkEvent, "y", &grace_GdkEvent_y);
     }
     Object o = alloc_obj(sizeof(struct GraceGdkEvent) - sizeof(struct Object),
         GraceGdkEvent);
