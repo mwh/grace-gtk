@@ -9,7 +9,7 @@ if (gtk.GTK_MAJOR_VERSION != 2) then {
 }
 
 def window = gtk.window(gtk.GTK_WINDOW_TOPLEVEL)
-window.title := "Hi!"
+window.title := "Simple drawing demo"
 
 def button = gtk.button
 button.label := "Cycle"
@@ -21,34 +21,48 @@ da.set_size_request(400, 300)
 vbox.add(da)
 vbox.add(button)
 window.add(vbox)
+window.add_events(platform.gdk.GDK_BUTTON_PRESS_MASK)
+window.add_events(platform.gdk.GDK_BUTTON1_MOTION_MASK)
 window.on "destroy" do { gtk.main_quit }
 
 da.app_paintable := true
 
-def colours = [
-    [0, 1, 0],
-    [0, 0, 0.5],
-    [0, 0, 0]
-]
+// Helper to simplify the code below
+method rectangleAt(x', y')sized(w', h')coloured(r', g', b') {
+    object {
+        def x is public, readable = x'
+        def y is public, readable = y'
+        def w is public, readable = w'
+        def h is public, readable = h'
+        def r is public, readable = r'
+        def g is public, readable = g'
+        def b is public, readable = b'
+    }
+}
+def rectangles = [rectangleAt(20, 20)sized(50, 50)coloured(1, 0, 0)]
+
+var curR := 1
+var curG := 0
+var curB := 0
 button.on "clicked" do {
-    def tmp = colours[1]
-    colours[1] := colours[2]
-    colours[2] := colours[3]
-    colours[3] := tmp
-    da.queue_draw
+    def tmp = curR
+    curR := curB
+    curB := curG
+    curG := tmp
 }
 
 da.on "expose-event" do {
     def c = gdk.cairo(da.window)
-    c.set_source_rgb(colours[1][1], colours[1][2], colours[1][3])
-    c.rectangle(10, 10, 100, 100)
-    c.fill
-    c.set_source_rgb(colours[2][1], colours[2][2], colours[2][3])
-    c.rectangle(60, 60, 100, 100)
-    c.fill
-    c.set_source_rgb(colours[3][1], colours[3][2], colours[3][3])
-    c.rectangle(100, 100, 100, 100)
-    c.fill
+    for (rectangles) do {rect->
+        c.set_source_rgb(rect.r, rect.g, rect.b)
+        c.rectangle(rect.x, rect.y, rect.w, rect.h)
+        c.fill
+    }
+}
+
+window.on "motion-notify-event" do {e->
+    rectangles.push(rectangleAt(e.x, e.y)sized(10, 10)coloured(curR, curG, curB))
+    da.queue_draw
 }
 
 window.show_all
