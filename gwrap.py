@@ -193,6 +193,11 @@ struct GraceCairoT {
     ClassData class;
     cairo_t *value;
 };
+struct GraceGdkEvent {
+    int32_t flags;
+    ClassData class;
+    GdkEvent *value;
+};
 
 ClassData alloc_class_CAIROcairo();
 
@@ -256,6 +261,23 @@ Object alloc_CairoT(cairo_t *val) {
     Object o = alloc_obj(sizeof(struct GraceCairoT) - sizeof(struct Object),
         alloc_class_CAIROcairo());
     struct GraceCairoT *t = (struct GraceCairoT *)o;
+    t->value = val;
+    return o;
+}
+ClassData GraceGdkEvent;
+Object grace_GdkEvent_keyval(Object self, int argc, int *argcv, Object *argv,
+    int flags) {
+    struct GraceGdkEvent *s = (struct GraceGdkEvent *)self;
+    return alloc_Float64(((GdkEventKey *)s->value)->keyval);
+}
+Object alloc_GdkEvent(GdkEvent *val) {
+    if (!GraceGdkEvent) {
+        GraceGdkEvent = alloc_class("GdkEvent", 1);
+        add_Method(GraceGdkEvent, "keyval", &grace_GdkEvent_keyval);
+    }
+    Object o = alloc_obj(sizeof(struct GraceGdkEvent) - sizeof(struct Object),
+        GraceGdkEvent);
+    struct GraceGdkEvent *t = (struct GraceGdkEvent *)o;
     t->value = val;
     return o;
 }
