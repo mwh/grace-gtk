@@ -24,6 +24,9 @@ window.add(vbox)
 window.add_events(platform.gdk.GDK_BUTTON_PRESS_MASK)
 window.add_events(platform.gdk.GDK_BUTTON1_MOTION_MASK)
 window.on "destroy" do { gtk.main_quit }
+def accelgroup = gtk.accel_group
+accelgroup.accel_connect(platform.gdk.GDK_KEY_Escape, { gtk.main_quit })
+window.add_accel_group(accelgroup)
 
 da.app_paintable := true
 
