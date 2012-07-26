@@ -38,7 +38,7 @@ MOD = mod.upper()
 kinds = set([
     'void', 'GtkWidget*', 'const gchar *', 'const gchar*', 'gboolean',
     'GtkWidget *', 'cairo_t *', 'GdkWindow *', 'cairo_public void',
-    'GtkOrientation'
+    'GtkOrientation', 'GtkAccelGroup*'
 ])
 
 included = set(['gtk/gtkaccelmap.h', 'gtk/gtkaboutdialog.h',
@@ -130,6 +130,8 @@ def coerce2gtk(dest, src):
         return '(*(double*)' + src + '->data)'
     elif dest == 'GtkOrientation':
         return 'integerfromAny(' + src + ')'
+    elif dest == 'GtkAccelGroup *':
+        return '(GtkAccelGroup *)(((struct GraceGtkWidget*)' + src + ')->widget)'
     else:
         raise FailedCoerce(dest)
         return '/*unknown: ' + dest + '*/ NULL'
@@ -156,7 +158,7 @@ def doconstructor(k, m):
               + ', '.join(m.params) + ').", argcv[0]);')
         print("    GtkWidget *w = " + k + "(" + ','.join(casts) + ');')
     else:
-        print("    GtkWidget *w = " + k + "();")
+        print("    GtkWidget *w = (GtkWidget *)" + k + "();")
     print("""
     Object o = alloc_obj(sizeof(struct GraceGtkWidget) - sizeof(struct Object),
          alloc_class_""" + MOD + cls + """());
@@ -228,6 +230,22 @@ static Object grace_g_signal_connect(Object self, int argc, int *argcv,
         g_signal_connect(w->widget, c,
           G_CALLBACK(grace_gtk_callback_block1), argv[1]);
     }
+    return self;
+}
+static void grace_gclosure_callback(Object block) {
+    callmethod(block, "apply", 0, NULL, NULL);
+}
+static GClosure *grace_gclosure(Object block) {
+    GClosure *closure = g_cclosure_new_swap(G_CALLBACK(grace_gclosure_callback),
+        block, NULL);
+    return closure;
+}
+static Object grace_gtk_accel_group_connect(Object self, int argc, int *argcv,
+      Object *argv, int flags) {
+    struct GraceGtkWidget *w = (struct GraceGtkWidget *)self;
+    GtkAccelGroup *ag = (GtkAccelGroup *)w->widget;
+    guint key = integerfromAny(argv[0]);
+    gtk_accel_group_connect(ag, key, 0, 0, grace_gclosure(argv[1]));
     return self;
 }
 ClassData GraceCairoT;
@@ -318,13 +336,14 @@ for cls in classes:
     print("ClassData alloc_class_" + MOD + "" + cls + "() {")
     print("  if (" + MOD + "" + cls + ") return " + MOD + "" + cls + ";")
     print("  " + MOD + "{} = alloc_class(\"{}\", {});".format(cls, cls,
-                                                      5+len(classes[cls])))
+                                                      6+len(classes[cls])))
     print("  gc_root((Object)" + MOD + "" + cls + ");")
     print("""add_Method(""" + MOD + """""" + cls + """, "==", &Object_Equals);
     add_Method(""" + MOD + """""" + cls + """, "!=", &Object_NotEquals);
     add_Method(""" + MOD + """""" + cls + """, "asString", &Object_asString);
     add_Method(""" + MOD + """""" + cls + """, "on()do", &grace_g_signal_connect);
-    add_Method(""" + MOD + """""" + cls + """, "connect", &grace_g_signal_connect);""")
+    add_Method(""" + MOD + """""" + cls + """, "connect", &grace_g_signal_connect);
+    add_Method(""" + MOD + """""" + cls + """, "accel_connect", &grace_gtk_accel_group_connect);""")
     for k in classes[cls]:
         gnm = k.split('_', 2)[-1]
         if cls == 'cairo':
