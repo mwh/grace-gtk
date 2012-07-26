@@ -216,21 +216,27 @@ Object alloc_CairoT(cairo_t *);
 Object alloc_GdkEvent(GdkEvent *);
 static void grace_gtk_callback_block1(GtkWidget *widget, cairo_t *tmp1,
       gpointer block) {
+    gc_pause();
     Object ct = alloc_CairoT(tmp1);
     int i[] = {1};
     callmethod((Object)block, "apply", 1, i, &ct);
+    gc_unpause();
 }
 static void grace_gtk_callback_block1_GdkEvent(GtkWidget *widget,
       GdkEvent *tmp1, gpointer block) {
+    gc_pause();
     Object ct = alloc_GdkEvent(tmp1);
     int i[] = {1};
     callmethod((Object)block, "apply", 1, i, &ct);
+    gc_unpause();
 }
 static void grace_gtk_callback_block1_CairoContext(GtkWidget *widget, cairo_t *tmp1,
       gpointer block) {
+    gc_pause();
     Object ct = alloc_CairoT(tmp1);
     int i[] = {1};
     callmethod((Object)block, "apply", 1, i, &ct);
+    gc_unpause();
 }
 static Object grace_g_signal_connect(Object self, int argc, int *argcv,
       Object *argv, int flags) {
@@ -246,7 +252,6 @@ static Object grace_g_signal_connect(Object self, int argc, int *argcv,
           G_CALLBACK(grace_gtk_callback_block0), argv[1]);
     } else if (query.n_params == 1) {
         const gchar *s = g_type_name(query.param_types[0]);
-        fprintf(stderr, "type name: %s\\n", s);
         if (strcmp(s, "CairoContext") == 0) {
             g_signal_connect(w->widget, c,
                 G_CALLBACK(grace_gtk_callback_block1_CairoContext), argv[1]);
