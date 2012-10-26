@@ -242,7 +242,7 @@ static Object grace_g_signal_connect(Object self, int argc, int *argcv,
       Object *argv, int flags) {
     struct GraceGtkWidget *w = (struct GraceGtkWidget *)self;
     char *c = grcstring(argv[0]);
-    guint tp = G_OBJECT_TYPE(w->widget);
+    GType tp = G_OBJECT_TYPE(w->widget);
     guint sig = g_signal_lookup(c, tp);
     GSignalQuery query;
     g_signal_query(sig, &query);
