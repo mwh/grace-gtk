@@ -1,0 +1,44 @@
+`make` accepts variables on the command line:
+  make SOME_VAR=value
+
+For example, to specify the location of your minigrace build (if it is
+not in ../minigrace), use:
+  make MINIGRACE_HEADERS=/path/to/minigrace
+
+Python
+------
+If "python3" does not exist on your system, specify either
+PYTHON_VERSION (must be 2.6 or higher) or PYTHON as the full executable
+name.
+
+GTK+
+----
+The bindings are currently compatible with both GTK+ 2 and GTK+ 3. GTK+
+3 is recommended. To use GTK+ 2 set GTK_VERSION=2.0. If your GTK+
+headers are in a non-standard location, set HEADER_LOCATION to the path
+including the "gtk-x.0" part.
+
+Mac OS X
+--------
+You will need to install the Command-Line Tools from XCode. These are
+available under "Downloads" in XCode's Preferences pane.
+
+To install GTK+ you can use Homebrew: <http://mxcl.github.com/homebrew/>
+`brew install gtk+3` will download and install the latest packaged GTK+
+3 and its dependencies.
+
+You will also need X11.app or XQuartz: <http://xquartz.macosforge.org/>.
+
+The PKG_CONFIG_PATH variable will need to be set when compiling
+grace-gtk. It is not required when only using the modules that have
+already be built. Use this command (in bash) to set it correctly:
+  export PKG_CONFIG_PATH=`brew --prefix cairo`/lib/pkgconfig:/opt/X11/lib/pkgconfig:/usr/local/lib/pkgconfig
+
+Because Homebrew installs headers into /usr/local you will need to use
+at least the following make variables:
+  INCLUDE_DIR=/usr/local/include CAIRO_INCLUDE_DIR=`brew --prefix
+  cairo`/include
+
+An example build command line might be:
+  make PYTHON_VERSION=2.7 INCLUDE_DIR=/usr/local/include
+    CAIRO_INCLUDE_DIR=`brew --prefix cairo`/include
