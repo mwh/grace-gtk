@@ -1,6 +1,6 @@
 // GTK+ 2 drawing example (not compatible with GTK+ 3)
-def gtk = platform.gtk
-def gdk = platform.gdk
+import "gtk" as gtk
+import "gdk" as gdk
 
 if (gtk.GTK_MAJOR_VERSION != 2) then {
     print "Error: This example is only compatible with GTK+ 2."

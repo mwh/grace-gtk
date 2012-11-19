@@ -1,4 +1,4 @@
-def gtk = platform.gtk
+import "gtk" as gtk
 
 def window = gtk.window(gtk.GTK_WINDOW_TOPLEVEL)
 window.title := "Hi!"

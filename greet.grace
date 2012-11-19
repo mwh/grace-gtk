@@ -1,4 +1,4 @@
-import gtk
+import "gtk" as gtk
 
 var hbox
 if (gtk.GTK_MAJOR_VERSION == 3) then {
