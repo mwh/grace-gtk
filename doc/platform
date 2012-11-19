@@ -32,7 +32,7 @@ You will also need X11.app or XQuartz: <http://xquartz.macosforge.org/>.
 The PKG_CONFIG_PATH variable will need to be set when compiling
 grace-gtk. It is not required when only using the modules that have
 already be built. Use this command (in bash) to set it correctly:
-  export PKG_CONFIG_PATH=`brew --prefix cairo`/lib/pkgconfig:/opt/X11/lib/pkgconfig:/usr/local/lib/pkgconfig
+  export PKG_CONFIG_PATH=`brew --prefix cairo`/lib/pkgconfig:/opt/X11/lib/pkgconfig:/usr/local/lib/pkgconfig:/usr/X11/lib/pkgconfig
 
 Because Homebrew installs headers into /usr/local you will need to use
 at least the following make variables:
