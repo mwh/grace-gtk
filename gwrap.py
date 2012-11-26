@@ -341,6 +341,8 @@ def classof(k):
         cls = 'accel_group'
     elif k.startswith('gtk_drawing_area_'):
         cls = 'drawing_area'
+    elif k.startswith('gtk_text_view_'):
+        cls = 'text_view'
     elif k.startswith('cairo_'):
         cls = 'cairo'
     else:
