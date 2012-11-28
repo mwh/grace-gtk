@@ -38,7 +38,7 @@ MOD = mod.upper()
 kinds = set([
     'void', 'GtkWidget*', 'const gchar *', 'const gchar*', 'gboolean',
     'GtkWidget *', 'cairo_t *', 'GdkWindow *', 'cairo_public void',
-    'GtkOrientation', 'GtkAccelGroup*'
+    'GtkOrientation', 'GtkAccelGroup*', 'GtkTextBuffer *'
 ])
 
 included = set(['gtk/gtkaccelmap.h', 'gtk/gtkaboutdialog.h',
@@ -209,6 +209,7 @@ Object Object_NotEquals(Object, int, int*,
         Object*, int);
 
 Object alloc_GtkWidget(GtkWidget *w);
+Object alloc_GtkTextBuffer(GtkTextBuffer *buf);
 static void grace_gtk_callback_block0(GtkWidget *widget, gpointer block) {
     callmethod((Object)block, "apply", 0, NULL, NULL);
 }
@@ -331,6 +332,8 @@ def coercereturn(m, s):
         print("    return alloc_CairoT(" + s + ");")
     elif m.returns == 'GdkWindow *':
         print("    return alloc_GtkWidget((GtkWidget *)(" + s + "));")
+    elif m.returns == 'GtkTextBuffer *':
+        print("    return alloc_GtkTextBuffer((GtkTextBuffer *)(" + s + "));")
     else:
         print("    " + s + ";")
         print("    return none;")
@@ -343,6 +346,8 @@ def classof(k):
         cls = 'drawing_area'
     elif k.startswith('gtk_text_view_'):
         cls = 'text_view'
+    elif k.startswith('gtk_text_buffer_'):
+        cls = 'text_buffer'
     elif k.startswith('cairo_'):
         cls = 'cairo'
     else:
@@ -356,6 +361,8 @@ for k, m in methods.items():
     if k.endswith('_new'):
         constructors.append(k)
         classof(k)
+        continue
+    if classof(k) == 'free':
         continue
     elif selftype != 'void' and not selftype.endswith('*'):
         continue
@@ -395,6 +402,8 @@ for cls in classes:
         if 'container' in classes:
             classes[cls].extend(classes['container'])
 
+if 'free' in classes:
+    del classes['free']
 for cls in classes:
     classallocators.add(MOD + cls)
     print("ClassData " + MOD + "" + cls + ";")
@@ -448,7 +457,15 @@ Object alloc_GtkWidget(GtkWidget *widget) {
     struct GraceGtkWidget *w = (struct GraceGtkWidget *)o;
     w->widget = widget;
     return o;
-}""")
+}
+Object alloc_GtkTextBuffer(GtkTextBuffer *buf) {
+    Object o = alloc_obj(sizeof(struct GraceGtkWidget) - sizeof(struct Object),
+         alloc_class_GTKtext_buffer());
+    struct GraceGtkWidget *ggw = (struct GraceGtkWidget *)o;
+    ggw->widget = (GtkWidget *)buf;
+    return o;
+}
+""")
 
 gtk_size = len(classes) + len(enums) + 3
 print("""
