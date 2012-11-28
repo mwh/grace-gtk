@@ -422,6 +422,8 @@ for cls in classes:
         gnm = k.split('_', 2)[-1]
         if cls == 'cairo':
             gnm = k.split('_', 1)[-1]
+        elif k.startswith("gtk_" + cls):
+            gnm = k[len(cls)+5:]
         if gnm.startswith('get_') and len(methods[k].params) == 1:
             gnm = gnm[4:]
         elif gnm.startswith('set_') and len(methods[k].params) == 2:
