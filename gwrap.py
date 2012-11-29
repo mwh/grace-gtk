@@ -38,7 +38,8 @@ MOD = mod.upper()
 kinds = set([
     'void', 'GtkWidget*', 'const gchar *', 'const gchar*', 'gboolean',
     'GtkWidget *', 'cairo_t *', 'GdkWindow *', 'cairo_public void',
-    'GtkOrientation', 'GtkAccelGroup*', 'GtkTextBuffer *'
+    'GtkOrientation', 'GtkAccelGroup*', 'GtkTextBuffer *', 'GtkTextIter *',
+    'gchar *'
 ])
 
 included = set(['gtk/gtkaccelmap.h', 'gtk/gtkaboutdialog.h',
@@ -130,6 +131,8 @@ def coerce2gtk(dest, src):
         return '(*(double*)' + src + '->data)'
     elif dest == 'GtkOrientation':
         return 'integerfromAny(' + src + ')'
+    elif dest == 'GtkTextIter *' or dest == 'const GtkTextIter *':
+        return '(GtkTextIter *)(((struct GraceGtkWidget*)' + src + ')->widget)'
     elif dest == 'GtkAccelGroup *':
         return '(GtkAccelGroup *)(((struct GraceGtkWidget*)' + src + ')->widget)'
     else:
@@ -181,6 +184,7 @@ print("#include <gdk/gdk.h>")
 for f in sys.argv[2:]:
     print("#include <" + f[len(basedir):] + ">")
 print("""
+#include <stdlib.h>
 extern Object none;
 
 struct GraceGtkWidget {
@@ -326,7 +330,8 @@ Object alloc_GdkEvent(GdkEvent *val) {
 """)
 
 def coercereturn(m, s):
-    if m.returns == 'const gchar *' or m.returns == 'const gchar*':
+    if (m.returns == 'const gchar *' or m.returns == 'const gchar*' or
+            m.returns == 'gchar *'):
         print("    return alloc_String(" + s + ");")
     elif m.returns == 'cairo_t *':
         print("    return alloc_CairoT(" + s + ");")
@@ -348,6 +353,8 @@ def classof(k):
         cls = 'text_view'
     elif k.startswith('gtk_text_buffer_'):
         cls = 'text_buffer'
+    elif k.startswith('gtk_text_iter_'):
+        cls = 'text_iter'
     elif k.startswith('cairo_'):
         cls = 'cairo'
     else:
@@ -467,6 +474,15 @@ Object alloc_GtkTextBuffer(GtkTextBuffer *buf) {
     ggw->widget = (GtkWidget *)buf;
     return o;
 }
+Object grace_gtk_text_iter_new(Object self, int argc, int *argcv,
+    Object *argv, int flags) {
+    GtkTextIter *iter = malloc(sizeof(GtkTextIter));
+    Object o = alloc_obj(sizeof(struct GraceGtkWidget) - sizeof(struct Object),
+         alloc_class_GTKtext_iter());
+    struct GraceGtkWidget *ggw = (struct GraceGtkWidget *)o;
+    ggw->widget = (GtkWidget *)iter;
+    return o;
+}
 """)
 
 gtk_size = len(classes) + len(enums) + 3
@@ -492,6 +508,7 @@ if mod == 'gtk':
     print("    add_Method(c, \"main\", &grace_gtk_main);")
     print("    add_Method(c, \"main_quit\", &grace_gtk_main_quit);")
     print("    add_Method(c, \"connect\", &grace_g_signal_connect);")
+    print("    add_Method(c, \"text_iter\", &grace_gtk_text_iter_new);")
 elif mod == 'gdk':
     print("    add_Method(c, \"cairo\", &grace_gdk_cairo_create);")
 print("    " + mod + "module = alloc_obj(sizeof(Object), c);")
