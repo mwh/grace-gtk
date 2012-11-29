@@ -339,7 +339,7 @@ static Object grace_g_object_set(Object self, int argc, int *argcv,
     GParamSpec *spec = g_object_class_find_property(cls, c);
     const gchar *s = g_type_name(spec->value_type);
     if (strcmp(s, "gboolean") == 0) {
-        g_object_set(w->widget, c, (gboolean)istrue(argv[1]));
+        g_object_set(w->widget, c, (gboolean)istrue(argv[1]), NULL);
     } else if (strcmp(s, "gchararray") == 0) {
         fprintf(stderr, "trying to set gchararray to: %s\\n",
             grcstring(argv[1]));
