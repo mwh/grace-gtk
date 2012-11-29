@@ -131,6 +131,8 @@ def coerce2gtk(dest, src):
         return '(*(double*)' + src + '->data)'
     elif dest == 'GtkOrientation':
         return 'integerfromAny(' + src + ')'
+    elif dest == 'GtkTextTag *':
+        return '(GtkTextTag *)(((struct GraceGtkWidget*)' + src + ')->widget)'
     elif dest == 'GtkTextIter *' or dest == 'const GtkTextIter *':
         return '(GtkTextIter *)(((struct GraceGtkWidget*)' + src + ')->widget)'
     elif dest == 'GtkAccelGroup *':
@@ -214,6 +216,8 @@ Object Object_NotEquals(Object, int, int*,
 
 Object alloc_GtkWidget(GtkWidget *w);
 Object alloc_GtkTextBuffer(GtkTextBuffer *buf);
+Object grace_gtk_text_buffer_create_tag(Object self, int argc, int *argcv,
+    Object *argv, int flags);
 static void grace_gtk_callback_block0(GtkWidget *widget, gpointer block) {
     callmethod((Object)block, "apply", 0, NULL, NULL);
 }
@@ -327,6 +331,24 @@ Object alloc_GdkEvent(GdkEvent *val) {
     t->value = val;
     return o;
 }
+static Object grace_g_object_set(Object self, int argc, int *argcv,
+      Object *argv, int flags) {
+    struct GraceGtkWidget *w = (struct GraceGtkWidget *)self;
+    char *c = grcstring(argv[0]);
+    GObjectClass *cls = G_OBJECT_GET_CLASS(w->widget);
+    GParamSpec *spec = g_object_class_find_property(cls, c);
+    const gchar *s = g_type_name(spec->value_type);
+    if (strcmp(s, "gboolean") == 0) {
+        g_object_set(w->widget, c, (gboolean)istrue(argv[1]));
+    } else if (strcmp(s, "gchararray") == 0) {
+        fprintf(stderr, "trying to set gchararray to: %s\\n",
+            grcstring(argv[1]));
+        g_object_set(w->widget, c, grcstring(argv[1]), NULL);
+    } else {
+        fprintf(stderr, "unknown property type name in gobject_set_property: %s\\n", s);
+    }
+    return self;
+}
 """)
 
 def coercereturn(m, s):
@@ -355,6 +377,8 @@ def classof(k):
         cls = 'text_buffer'
     elif k.startswith('gtk_text_iter_'):
         cls = 'text_iter'
+    elif k.startswith('gtk_text_tag_'):
+        cls = 'text_tag'
     elif k.startswith('cairo_'):
         cls = 'cairo'
     else:
@@ -411,18 +435,21 @@ for cls in classes:
 
 if 'free' in classes:
     del classes['free']
+if 'text_buffer' in classes:
+    classes['text_buffer'].append('gtk_text_buffer_create_tag')
 for cls in classes:
     classallocators.add(MOD + cls)
     print("ClassData " + MOD + "" + cls + ";")
     print("ClassData alloc_class_" + MOD + "" + cls + "() {")
     print("  if (" + MOD + "" + cls + ") return " + MOD + "" + cls + ";")
     print("  " + MOD + "{} = alloc_class(\"{}\", {});".format(cls, cls,
-                                                      6+len(classes[cls])))
+                                                      7+len(classes[cls])))
     print("  gc_root((Object)" + MOD + "" + cls + ");")
     print("""add_Method(""" + MOD + """""" + cls + """, "==", &Object_Equals);
     add_Method(""" + MOD + """""" + cls + """, "!=", &Object_NotEquals);
     add_Method(""" + MOD + """""" + cls + """, "asString", &Object_asString);
     add_Method(""" + MOD + """""" + cls + """, "on()do", &grace_g_signal_connect);
+    add_Method(""" + MOD + """""" + cls + """, "gobject_property_set", &grace_g_object_set);
     add_Method(""" + MOD + """""" + cls + """, "connect", &grace_g_signal_connect);
     add_Method(""" + MOD + """""" + cls + """, "accel_connect", &grace_gtk_accel_group_connect);""")
     for k in classes[cls]:
@@ -481,6 +508,30 @@ Object grace_gtk_text_iter_new(Object self, int argc, int *argcv,
          alloc_class_GTKtext_iter());
     struct GraceGtkWidget *ggw = (struct GraceGtkWidget *)o;
     ggw->widget = (GtkWidget *)iter;
+    return o;
+}
+Object grace_gtk_text_buffer_create_tag(Object self, int argc, int *argcv,
+    Object *argv, int flags) {
+    struct GraceGtkWidget *w = (struct GraceGtkWidget *)self;
+    char *tn = grcstring(argv[0]);
+    char *c = grcstring(argv[1]);
+    GtkTextTag *tag = gtk_text_tag_new(NULL);
+    GObjectClass *cls = G_OBJECT_GET_CLASS(tag);
+    GParamSpec *spec = g_object_class_find_property(cls, c);
+    const gchar *s = g_type_name(spec->value_type);
+    if (strcmp(s, "gboolean") == 0) {
+        tag = gtk_text_buffer_create_tag((GtkTextBuffer *)w->widget,
+          tn, c, (gboolean)istrue(argv[2]), NULL);
+    } else if (strcmp(s, "gchararray") == 0) {
+        tag = gtk_text_buffer_create_tag((GtkTextBuffer *)w->widget,
+          tn, c, grcstring(argv[2]), NULL);
+    } else {
+        fprintf(stderr, "unknown property type name in create_tag: %s\\n", s);
+    }
+    Object o = alloc_obj(sizeof(struct GraceGtkWidget) - sizeof(struct Object),
+         alloc_class_GTKtext_tag());
+    struct GraceGtkWidget *ggw = (struct GraceGtkWidget *)o;
+    ggw->widget = (GtkWidget *)tag;
     return o;
 }
 """)
