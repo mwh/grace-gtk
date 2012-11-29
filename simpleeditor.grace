@@ -54,6 +54,13 @@ button.on "clicked" do {
         errorswindow.add(errorstv)
         errorstv.set_size_request(200, 200)
         errorstv.buffer.set_text(errors, -1)
+        def ost = gtk.text_iter
+        def oen = gtk.text_iter
+        errorstv.buffer.get_iter_at_offset(ost, 0)
+        errorstv.buffer.get_iter_at_offset(oen, -1)
+        def tag = errorstv.buffer.create_tag("fixed", "foreground", "red")
+        errorstv.buffer.apply_tag(tag, ost, oen)
+        errorstv.editable := false
         errorswindow.show_all
     }
     if (output.size > 0) then {
@@ -63,6 +70,7 @@ button.on "clicked" do {
         outputwindow.add(outputtv)
         outputtv.set_size_request(200, 200)
         outputtv.buffer.set_text(output, -1)
+        outputtv.editable := false
         outputwindow.show_all
     }
 }
