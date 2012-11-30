@@ -14,19 +14,19 @@ gtk.c: gwrap.py
 	$(PYTHON) gwrap.py $(HEADER_LOCATION)/gtk/gtk.h > gtk.c
 
 gtk.gso: gtk.c
-	gcc -o gtk.gso -I$(MINIGRACE_HEADERS) `pkg-config --cflags gtk+-$(GTK_VERSION)` $(UNICODE_LDFLAGS) -fPIC -shared gtk.c `pkg-config --libs gtk+-$(GTK_VERSION)`
+	gcc -Wall -o gtk.gso -I$(MINIGRACE_HEADERS) `pkg-config --cflags gtk+-$(GTK_VERSION)` $(UNICODE_LDFLAGS) -fPIC -shared gtk.c `pkg-config --libs gtk+-$(GTK_VERSION)`
 
 gdk.c: gwrap.py
 	$(PYTHON) gwrap.py $(HEADER_LOCATION)/gdk/gdk.h $(HEADER_LOCATION)/gdk/gdkkeysyms.h > gdk.c
 
 gdk.gso: gdk.c
-	gcc -o gdk.gso -I$(MINIGRACE_HEADERS) `pkg-config --cflags gtk+-$(GTK_VERSION)` $(UNICODE_LDFLAGS) -fPIC -shared gdk.c `pkg-config --libs gtk+-$(GTK_VERSION)`
+	gcc -Wall -o gdk.gso -I$(MINIGRACE_HEADERS) `pkg-config --cflags gtk+-$(GTK_VERSION)` $(UNICODE_LDFLAGS) -fPIC -shared gdk.c `pkg-config --libs gtk+-$(GTK_VERSION)`
 
 cairo.c: gwrap.py
 	$(PYTHON) gwrap.py $(CAIRO_INCLUDE_DIR)/cairo/cairo.h > cairo.c
 
 cairo.gso: cairo.c
-	gcc -o cairo.gso -I$(MINIGRACE_HEADERS) `pkg-config --cflags gtk+-$(GTK_VERSION)` $(UNICODE_LDFLAGS) -fPIC -shared cairo.c `pkg-config --libs gtk+-$(GTK_VERSION)`
+	gcc -Wall -o cairo.gso -I$(MINIGRACE_HEADERS) `pkg-config --cflags gtk+-$(GTK_VERSION)` $(UNICODE_LDFLAGS) -fPIC -shared cairo.c `pkg-config --libs gtk+-$(GTK_VERSION)`
 
 clean:
 	rm -f gtk.gso gtk.c
