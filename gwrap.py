@@ -94,7 +94,8 @@ def process_file(fn):
                 if (name == 'gtk_widget_destroyed'
                     or name == 'gtk_rc_set_default_files'
                     or name == 'gtk_icon_theme_set_search_path'
-                    or name == 'gdk_device_free_history'):
+                    or name == 'gdk_device_free_history'
+                    or name == 'gtk_false' or name == 'gtk_true'):
                     continue
                 methods[name] = func(name, k,
                                      line.split('(', 1)[1].split(')', 1)[0])
@@ -158,7 +159,7 @@ def doconstructor(k, m):
     print("    Object *argv, int flags) {")
     if casts:
         print('    if (argc < 1 || argcv[0] < ' + str(len(casts)) + ')')
-        print('        die("' + k[4:-4] + ' requires ' + str(len(casts))
+        print('        gracedie("' + k[4:-4] + ' requires ' + str(len(casts))
               + ' arguments, got %i. Signature: ' + k[4:-4] + '('
               + ', '.join(m.params) + ').", argcv[0]);')
         print("    GtkWidget *w = " + k + "(" + ','.join(casts) + ');')
@@ -187,6 +188,7 @@ for f in sys.argv[2:]:
     print("#include <" + f[len(basedir):] + ">")
 print("""
 #include <stdlib.h>
+#include <string.h>
 extern Object none;
 
 struct GraceGtkWidget {
@@ -361,7 +363,10 @@ def coercereturn(m, s):
         print("    return alloc_GtkWidget((GtkWidget *)(" + s + "));")
     elif m.returns == 'GtkTextBuffer *':
         print("    return alloc_GtkTextBuffer((GtkTextBuffer *)(" + s + "));")
+    elif m.returns == 'gboolean':
+        print("    return alloc_Boolean(" + s + ");")
     else:
+        print("    // Don't understand how to return '" + m.returns + "'.")
         print("    " + s + ";")
         print("    return none;")
 
@@ -416,7 +421,8 @@ for k, m in methods.items():
             print("  {} s = ({})(((struct GraceGtkWidget *)self)->widget);".format(selftype, selftype))
         if casts:
             print('    if (argc < 1 || argcv[0] < ' + str(len(casts)) + ')')
-            print('        die("' + mod + ' method requires ' + str(len(casts))
+            print('        gracedie("' + mod + ' method requires '
+                  + str(len(casts))
                   + ' arguments, got %i. Signature: ' + k + '('
                   + ', '.join(m.params[1:]) + ').", argcv[0]);')
             coercereturn(m, "  " + k + "(s, " + ','.join(casts) + ')')
