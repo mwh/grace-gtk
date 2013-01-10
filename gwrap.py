@@ -98,8 +98,6 @@ def process_file(fn):
                     or name == 'gtk_false' or name == 'gtk_true'):
                     continue
                 args = line.split('(', 1)[1].split(')', 1)[0]
-                if args == 'void' and name not in ('gtk_main', 'gtk_main_quit'):
-                    continue
                 methods[name] = func(name, k, args)
 
 process_file(sys.argv[1])
@@ -415,7 +413,9 @@ for k, m in methods.items():
         continue
     print("Object grace_" + k + "(Object self, int argc, int *argcv, "
           + "Object *argv, int flags) {")
-    if selftype == 'void':
+    if selftype == 'void' and m.returns == 'gint':
+        coercereturn(m, "  " + k + "()")
+    elif selftype == 'void':
         print("  " + k + "(" + ','.join(casts) + ');')
         print("  return none;")
     else:
