@@ -97,8 +97,10 @@ def process_file(fn):
                     or name == 'gdk_device_free_history'
                     or name == 'gtk_false' or name == 'gtk_true'):
                     continue
-                methods[name] = func(name, k,
-                                     line.split('(', 1)[1].split(')', 1)[0])
+                args = line.split('(', 1)[1].split(')', 1)[0]
+                if args == 'void' and name not in ('gtk_main', 'gtk_main_quit'):
+                    continue
+                methods[name] = func(name, k, args)
 
 process_file(sys.argv[1])
 
