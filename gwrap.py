@@ -39,7 +39,7 @@ kinds = set([
     'void', 'GtkWidget*', 'const gchar *', 'const gchar*', 'gboolean',
     'GtkWidget *', 'cairo_t *', 'GdkWindow *', 'cairo_public void',
     'GtkOrientation', 'GtkAccelGroup*', 'GtkTextBuffer *', 'GtkTextIter *',
-    'gchar *'
+    'gchar *', 'gint'
 ])
 
 included = set(['gtk/gtkaccelmap.h', 'gtk/gtkaboutdialog.h',
@@ -367,6 +367,8 @@ def coercereturn(m, s):
         print("    return alloc_GtkTextBuffer((GtkTextBuffer *)(" + s + "));")
     elif m.returns == 'gboolean':
         print("    return alloc_Boolean(" + s + ");")
+    elif m.returns == 'gint':
+        print("    return alloc_Float64(" + s + ");")
     else:
         print("    // Don't understand how to return '" + m.returns + "'.")
         print("    " + s + ";")
