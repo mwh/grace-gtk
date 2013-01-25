@@ -249,6 +249,14 @@ static void grace_gtk_callback_block1_CairoContext(GtkWidget *widget, cairo_t *t
     callmethod((Object)block, "apply", 1, i, &ct);
     gc_unpause();
 }
+static void grace_gtk_callback_block1_gchararray(GtkWidget *widget, gchar *tmp1,
+      gpointer block) {
+    gc_pause();
+    Object ct = alloc_String(tmp1);
+    int i[] = {1};
+    callmethod((Object)block, "apply", 1, i, &ct);
+    gc_unpause();
+}
 static Object grace_g_signal_connect(Object self, int argc, int *argcv,
       Object *argv, int flags) {
     struct GraceGtkWidget *w = (struct GraceGtkWidget *)self;
@@ -269,6 +277,9 @@ static Object grace_g_signal_connect(Object self, int argc, int *argcv,
         } else if (strcmp(s, "GdkEvent") == 0) {
             g_signal_connect(w->widget, c,
                 G_CALLBACK(grace_gtk_callback_block1_GdkEvent), argv[1]);
+        } else if (strcmp(s, "gchararray") == 0) {
+            g_signal_connect(w->widget, c,
+                G_CALLBACK(grace_gtk_callback_block1_gchararray), argv[1]);
         } else {
             g_signal_connect(w->widget, c,
                 G_CALLBACK(grace_gtk_callback_block1), argv[1]);
