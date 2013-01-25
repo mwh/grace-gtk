@@ -2,9 +2,9 @@ grace-gtk - GTK+ bindings for Grace
 
 grace-gtk provides GTK+ bindings for Grace, intended to be used with the
 Minigrace compiler. These bindings are TOTALLY UNSUPPORTED. To build,
-run `make`: you may need to specify some of the variables defined at the
-top of the makefile for your system. <doc/platform> gives some notes on
-what may be required.
+run `configure` and then `make`: you may need to specify some of the
+paths used for your system. <doc/platform> gives some notes on what may
+be required.
 
 The script generates a subset of the full GTK+ API automatically,
 determined by what it knows how to translate back and forth, and

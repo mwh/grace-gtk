@@ -1,22 +1,28 @@
-`make` accepts variables on the command line:
+configure accepts several options, listed with configure --help, which
+correspond to variables in the makefile. Options set with configure are
+saved in Makefile.conf for future compilations. configure will usually
+prompt you to specify values it detects as non-default.
+
+`make` also accepts variables on the command line:
   make SOME_VAR=value
 
 For example, to specify the location of your minigrace build (if it is
-not in ../minigrace), use:
+not in ../minigrace), you can use:
   make MINIGRACE_HEADERS=/path/to/minigrace
 
 Python
 ------
 If "python3" does not exist on your system, specify either
 PYTHON_VERSION (must be 2.6 or higher) or PYTHON as the full executable
-name.
+name. configure will attempt to find a suitable Python version
+automatically.
 
 GTK+
 ----
 The bindings are currently compatible with both GTK+ 2 and GTK+ 3. GTK+
 3 is recommended. To use GTK+ 2 set GTK_VERSION=2.0. If your GTK+
 headers are in a non-standard location, set HEADER_LOCATION to the path
-including the "gtk-x.0" part.
+including the "gtk-x.0" part or pass that path to configure --gtk-headers.
 
 Mac OS X
 --------
@@ -31,14 +37,13 @@ You will also need X11.app or XQuartz: <http://xquartz.macosforge.org/>.
 
 The PKG_CONFIG_PATH variable will need to be set when compiling
 grace-gtk. It is not required when only using the modules that have
-already be built. Use this command (in bash) to set it correctly:
+already been built. Use this command (in bash) to set it correctly:
   export PKG_CONFIG_PATH=`brew --prefix cairo`/lib/pkgconfig:/opt/X11/lib/pkgconfig:/usr/local/lib/pkgconfig:/usr/X11/lib/pkgconfig
 
 Because Homebrew installs headers into /usr/local you will need to use
-at least the following make variables:
-  INCLUDE_DIR=/usr/local/include CAIRO_INCLUDE_DIR=`brew --prefix
-  cairo`/include
+at least the following configure flags:
+  --include-dir /usr/local/include --cairo-headers `brew --prefix cairo`/include
 
-An example build command line might be:
-  make PYTHON_VERSION=2.7 INCLUDE_DIR=/usr/local/include
-    CAIRO_INCLUDE_DIR=`brew --prefix cairo`/include
+An example configure command line might be:
+  ./configure --python python2.7 --include-dir /usr/local/include
+    --cairo-headers `brew --prefix cairo`/include
