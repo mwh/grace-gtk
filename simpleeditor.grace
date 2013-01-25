@@ -22,6 +22,9 @@ if (sys.argv.size > 1) then {
     fp.close
     filename := sys.argv.at(2)
 }
+tv.buffer.on "changed" do {
+    window.title := "Simple Grace Editor (unsaved changes)"
+}
 def button = gtk.button
 button.label := "Run"
 
@@ -39,6 +42,7 @@ button.on "clicked" do {
     def fp = io.open(filename, "w")
     fp.write(s)
     fp.close
+    window.title := "Simple Grace Editor"
     io.system("../minigrace/minigrace \"{filename}\" > .graceedit-tmp 2> .graceedit-errors")
     def op = io.open(".graceedit-tmp", "r")
     def output = op.read
