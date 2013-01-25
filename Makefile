@@ -7,6 +7,7 @@ CAIRO_INCLUDE_DIR=$(INCLUDE_DIR)
 
 PYTHON=python$(PYTHON_VERSION)
 
+include Makefile.conf
 include $(MINIGRACE_HEADERS)/Makefile.conf
 
 all: gtk.gso gdk.gso cairo.gso
