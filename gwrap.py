@@ -126,7 +126,7 @@ def coerce2gtk(dest, src):
         return '((struct GraceCairoT*)' + src + ')->value'
     elif dest == 'GdkWindow *':
         return '(GdkWindow *)(((struct GraceGtkWidget*)' + src + ')->widget)'
-    elif dest == 'gint':
+    elif dest == 'gint' or dest == 'guint':
         return 'integerfromAny(' + src + ')'
     elif dest == 'double':
         return '(*(double*)' + src + '->data)'
@@ -138,6 +138,8 @@ def coerce2gtk(dest, src):
         return '(GtkTextIter *)(((struct GraceGtkWidget*)' + src + ')->widget)'
     elif dest == 'GtkAccelGroup *':
         return '(GtkAccelGroup *)(((struct GraceGtkWidget*)' + src + ')->widget)'
+    elif dest == 'GtkAdjustment *':
+        return 'NULL'
     else:
         raise FailedCoerce(dest)
         return '/*unknown: ' + dest + '*/ NULL'
@@ -157,11 +159,14 @@ def doconstructor(k, m):
             return
     print("Object grace_" + k + "(Object self, int argc, int *argcv,")
     print("    Object *argv, int flags) {")
-    if casts:
+    if casts and list(filter(lambda x: x != 'NULL', casts)):
         print('    if (argc < 1 || argcv[0] < ' + str(len(casts)) + ')')
         print('        gracedie("' + k[4:-4] + ' requires ' + str(len(casts))
               + ' arguments, got %i. Signature: ' + k[4:-4] + '('
               + ', '.join(m.params) + ').", argcv[0]);')
+        print("    GtkWidget *w = " + k + "(" + ','.join(casts) + ');')
+    elif casts:
+        # All parameters are passed as nulls - don't enforce a size
         print("    GtkWidget *w = " + k + "(" + ','.join(casts) + ');')
     else:
         print("    GtkWidget *w = (GtkWidget *)" + k + "();")
@@ -397,6 +402,8 @@ def classof(k):
         cls = 'text_iter'
     elif k.startswith('gtk_text_tag_'):
         cls = 'text_tag'
+    elif k.startswith('gtk_scrolled_window_'):
+        cls = 'scrolled_window'
     elif k.startswith('cairo_'):
         cls = 'cairo'
     else:
