@@ -11,6 +11,7 @@ then
     echo "                               [\$INCLUDE/gtk-3.0]"
     echo "  --cairo-headers <PATH>     Path to Cairo headers [\$INCLUDE]"
     echo "  --minigrace-headers <PATH> Path to Minigrace headers [../minigrace]"
+    echo "  --brew                     Set up defaults for 'brew' on OS X"
     echo "  --null                     Create empty Makefile.conf so that"
     echo "                             make variables can be used for options."
     echo
@@ -20,6 +21,7 @@ then
     echo "# Empty Makefile.conf generated on $(date)" > Makefile.conf
     exit 0
 fi
+BREW=
 PYTHON_VERSION=
 INCLUDE_DIR=/usr/include
 capture=
@@ -40,6 +42,15 @@ do
     elif [[ "$x" == "--include-dir" ]]
     then
         capture=include
+    elif [[ "$x" == "--brew" ]]
+    then
+        if ! brew --version >/dev/null 2>&1
+        then
+            echo "brew not found. Ensure that it is somewhere in your PATH."
+            exit 1
+        fi
+        BREW=y
+        INCLUDE_DIR=/usr/local
     fi
 done
 if ! [ "$PYTHON" ] && ! python3 --version 2>/dev/null
@@ -72,7 +83,14 @@ then
         exit 1
     fi
 fi
-
+if [ "$BREW" ]
+then
+    if ! ( pkg-config --exists gtk+-3.0 && pkg-config --exists cairo )
+    then
+        export PKG_CONFIG_PATH=`brew --prefix cairo`/lib/pkgconfig:/opt/X11/lib/pkgconfig:/usr/local/lib/pkgconfig:/usr/X11/lib/pkgconfig
+        SET_PKGCONFIG=y
+    fi
+fi
 GTK_VERSION=3.0
 echo -n "Looking for GTK+... "
 if ! pkg-config --exists gtk+-$GTK_VERSION
@@ -97,6 +115,11 @@ fi
 HEADER_LOCATION=$INCLUDE_DIR/gtk-$GTK_VERSION
 CAIRO_INCLUDE_DIR=$INCLUDE_DIR
 MINIGRACE_HEADERS=../minigrace
+
+if [ "$BREW" ]
+then
+    CAIRO_INCLUDE_DIR="`brew --prefix cairo`/include"
+fi
 
 capture=
 for x in "$@"
@@ -185,4 +208,13 @@ then
     echo "All default options valid - created empty Makefile.conf."
 else
     cat Makefile.conf
+fi
+if [ "$SET_PKGCONFIG" ]
+then
+    echo
+    echo "configure needed to set PKG_CONFIG_PATH to find installed packages."
+    echo "You will need to set this variable in your environment to build:"
+    echo "    export PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
+    echo "This variable will need to be set in your environment for every"
+    echo "compilation of these libraries, but not when using the modules."
 fi
