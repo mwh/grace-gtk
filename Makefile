@@ -32,9 +32,10 @@ clean:
 	rm -f gtk.gso gtk.c
 	rm -f gdk.gso gdk.c
 	rm -f cairo.gso cairo.c
-	rm -f helloworld helloworld.c helloworld.gcn
-	rm -f drawing drawing.c drawing.gcn
-	rm -f drawing2 drawing2.c drawing2.gcn
-	rm -f greet greet.c greet.gcn
+	rm -f helloworld helloworld.c helloworld.gcn helloworld.gct
+	rm -f drawing drawing.c drawing.gcn drawing.gct
+	rm -f drawing2 drawing2.c drawing2.gcn drawing2.gct
+	rm -f greet greet.c greet.gcn greet.gct
+	rm -f simpleeditor simpleeditor.c simpleeditor.gcn simpleeditor.gct
 
 .PHONY: clean all
