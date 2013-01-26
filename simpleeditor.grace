@@ -25,6 +25,9 @@ if (sys.argv.size > 1) then {
 tv.buffer.on "changed" do {
     window.title := "Simple Grace Editor (unsaved changes)"
 }
+def sw = gtk.scrolled_window
+sw.set_size_request(400, 400)
+sw.add(tv)
 def button = gtk.button
 button.label := "Run"
 
@@ -78,7 +81,7 @@ button.on "clicked" do {
         outputwindow.show_all
     }
 }
-vbox.add(tv)
+vbox.pack_start(sw, true, true, 0)
 vbox.add(button)
 
 window.add(vbox)
