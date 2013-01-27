@@ -37,5 +37,6 @@ clean:
 	rm -f drawing2 drawing2.c drawing2.gcn drawing2.gct
 	rm -f greet greet.c greet.gcn greet.gct
 	rm -f simpleeditor simpleeditor.c simpleeditor.gcn simpleeditor.gct
+	rm -f pngviewer pngviewer.c pngviewer.gcn pngviewer.gct
 
 .PHONY: clean all
