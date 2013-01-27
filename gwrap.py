@@ -40,7 +40,8 @@ kinds = set([
     'void', 'GtkWidget*', 'const gchar *', 'const gchar*', 'gboolean',
     'GtkWidget *', 'cairo_t *', 'GdkWindow *', 'cairo_public void',
     'GtkOrientation', 'GtkAccelGroup*', 'GtkTextBuffer *', 'GtkTextIter *',
-    'gchar *', 'gint', 'cairo_public cairo_surface_t *'
+    'gchar *', 'gint', 'cairo_public cairo_surface_t *',
+    'cairo_public int'
 ])
 
 included = set(['gtk/gtkaccelmap.h', 'gtk/gtkaboutdialog.h',
@@ -393,7 +394,7 @@ def coercereturn(m, s):
         print("    return alloc_GtkTextBuffer((GtkTextBuffer *)(" + s + "));")
     elif m.returns == 'gboolean':
         print("    return alloc_Boolean(" + s + ");")
-    elif m.returns == 'gint':
+    elif m.returns == 'gint' or m.returns == 'cairo_public int':
         print("    return alloc_Float64(" + s + ");")
     else:
         print("    // Don't understand how to return '" + m.returns + "'.")
@@ -420,6 +421,8 @@ def classof(k):
         # Hacky way to switch some cairo_* methods to be found
         # on the module object itself.
         return '*modulemethod'
+    elif k.startswith('cairo_image_surface_'):
+        cls = 'image_surface'
     elif k.startswith('cairo_'):
         cls = 'cairo'
     else:
@@ -507,6 +510,8 @@ for cls in classes:
         gnm = k.split('_', 2)[-1]
         if cls == 'cairo':
             gnm = k.split('_', 1)[-1]
+        elif cls == 'image_surface':
+            gnm = k.split('_', 3)[-1]
         elif k.startswith("gtk_" + cls):
             gnm = k[len(cls)+5:]
         if gnm.startswith('get_') and len(methods[k].params) == 1:
@@ -588,13 +593,9 @@ Object grace_gtk_text_buffer_create_tag(Object self, int argc, int *argcv,
 """)
 elif mod == 'cairo':
     print("""
-ClassData GraceCairoSurfaceT;
 Object alloc_CairoSurfaceT(cairo_surface_t *c) {
-    if (!GraceCairoSurfaceT) {
-        GraceCairoSurfaceT = alloc_class("CairoT", 2);
-    }
     Object o = alloc_obj(sizeof(struct GraceGtkWidget) - sizeof(struct Object),
-         GraceCairoSurfaceT);
+         alloc_class_CAIROimage_surface());
     struct GraceGtkWidget *ggw = (struct GraceGtkWidget *)o;
     ggw->widget = (GtkWidget *)c;
     return o;
