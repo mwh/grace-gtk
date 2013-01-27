@@ -8,14 +8,15 @@ what may be required.
 
 The script generates a subset of the full GTK+ API automatically,
 determined by what it knows how to translate back and forth, and
-available from the dynamic module "gtk". There is a simple example
-script in the repository creating a "Hello world" window.
+available from the dynamic module "gtk".
 
 Binding modules for "gdk" and "cairo" are also generated. Both of these
 modules must be found in order for gtk to import correctly, but neither
 needs to be imported directly if not desired. Two examples using Cairo
 to draw pictures are in drawing.grace (for GTK+ 3) and drawing2.grace
 (for GTK+ 2).
+
+Several included demo programs are described in <doc/demos>.
 
 Licensing
 ---------

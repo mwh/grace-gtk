@@ -1,0 +1,32 @@
+The grace-gtk distribution includes a number of demo programs using the
+bindings:
+
+- helloworld.grace displays a single window with a single button,
+  terminating when the button is clicked. It uses gtk.window and
+  gtk.button.
+
+- greet.grace prompts the user for their name, and prints a greeting
+  when a button is clicked or the enter key is pressed. It also uses
+  gtk.entry and gtk.box (gtk.hbox in GTK+ 2).
+
+- drawing.grace (GTK+ 3) and drawing2.grace (GTK+ 2) use
+  gtk.drawing_area to make a paintable area, in which the user can paint
+  simple three-coloured pictures. The drawing is performed using the
+  cairo bindings. It also uses gtk.accel_group to make the program close
+  when the escape key is pressed.
+
+- simpleeditor.grace gives a simple code editor, with a gtk.text_view
+  for code entry and a button to run the Grace code the user has
+  written. A gtk.scrolled_window provides scrollbars for long code,
+  while box.pack_start flags make the text widget resize to fit the
+  window. Output and any errors are displayed in other windows. The
+  program also demonstrates the use of text buffers and gtk.text_iter,
+  and the creation of tags to colour or change how text is displayed.
+
+- pngviewer.grace is a simple image viewer that can only display PNG
+  images. The images are loaded using Cairo's built-in PNG
+  functionality, cairo.image_surface_create_from_png, and scaled to fit
+  the window. Multiple images may be given on the command-line and
+  cycled through with the spacebar and backspace keys. This program
+  includes code to support both GTK+ 2 and GTK+ 3 drawing areas.
+
