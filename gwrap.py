@@ -486,6 +486,8 @@ for cls in classes:
             classes[cls].extend(classes['widget'])
         if 'container' in classes:
             classes[cls].extend(classes['container'])
+    if cls == 'vbox' or cls == 'hbox':
+        classes[cls].extend(classes['box'])
 
 if 'free' in classes:
     del classes['free']
