@@ -22,6 +22,7 @@ enums = []
 classes = {}
 constructors = []
 usedconstructors = []
+modulemethods = []
 classallocators = set()
 
 if len(sys.argv) < 2:
@@ -39,7 +40,7 @@ kinds = set([
     'void', 'GtkWidget*', 'const gchar *', 'const gchar*', 'gboolean',
     'GtkWidget *', 'cairo_t *', 'GdkWindow *', 'cairo_public void',
     'GtkOrientation', 'GtkAccelGroup*', 'GtkTextBuffer *', 'GtkTextIter *',
-    'gchar *', 'gint'
+    'gchar *', 'gint', 'cairo_public cairo_surface_t *'
 ])
 
 included = set(['gtk/gtkaccelmap.h', 'gtk/gtkaboutdialog.h',
@@ -78,6 +79,8 @@ def process_file(fn):
                                         re.sub('#.*', '',m.group(1)).split(
                                             ','))))))
     for line in logical_lines:
+        if '#if' in line:
+            line = re.sub('#.*', '', line)
         line = line.replace('\n', ' ').strip()
         line = re.sub(' +\*', ' *', line)
         for k in kinds:
@@ -85,6 +88,8 @@ def process_file(fn):
                 name = line[len(k):].strip().split(' ', 1)[0]
                 if '\t' in name:
                     name = name.partition('\t')[0]
+                if '(' in name:
+                    name = name.partition('(')[0]
                 if not name:
                     continue
                 if name.startswith('_'):
@@ -116,6 +121,8 @@ def coerce2gtk(dest, src):
         dest = dest.rpartition(' ')[0].strip()
     if dest == 'const gchar *' or dest == 'const gchar*':
         return '(const gchar *)grcstring(' + src + ')'
+    elif dest == 'const char *' or dest == 'const char*':
+        return '(const gchar *)grcstring(' + src + ')'
     elif dest == 'gboolean':
         return '(gboolean)istrue(' + src + ')'
     elif dest.endswith('Type'):
@@ -138,6 +145,8 @@ def coerce2gtk(dest, src):
         return '(GtkTextIter *)(((struct GraceGtkWidget*)' + src + ')->widget)'
     elif dest == 'GtkAccelGroup *':
         return '(GtkAccelGroup *)(((struct GraceGtkWidget*)' + src + ')->widget)'
+    elif dest == 'cairo_surface_t *':
+        return '(cairo_surface_t *)(((struct GraceGtkWidget*)' + src + ')->widget)'
     elif dest == 'GtkAdjustment *':
         return 'NULL'
     else:
@@ -229,6 +238,7 @@ static void grace_gtk_callback_block0(GtkWidget *widget, gpointer block) {
     callmethod((Object)block, "apply", 0, NULL, NULL);
 }
 Object alloc_CairoT(cairo_t *);
+Object alloc_CairoSurfaceT(cairo_surface_t *);
 Object alloc_GdkEvent(GdkEvent *);
 static void grace_gtk_callback_block1(GtkWidget *widget, cairo_t *tmp1,
       gpointer block) {
@@ -375,6 +385,8 @@ def coercereturn(m, s):
         print("    return alloc_String(" + s + ");")
     elif m.returns == 'cairo_t *':
         print("    return alloc_CairoT(" + s + ");")
+    elif m.returns == 'cairo_public cairo_surface_t *':
+        print("    return alloc_CairoSurfaceT(" + s + ");")
     elif m.returns == 'GdkWindow *':
         print("    return alloc_GtkWidget((GtkWidget *)(" + s + "));")
     elif m.returns == 'GtkTextBuffer *':
@@ -404,6 +416,10 @@ def classof(k):
         cls = 'text_tag'
     elif k.startswith('gtk_scrolled_window_'):
         cls = 'scrolled_window'
+    elif k.startswith('cairo_image_surface_create'):
+        # Hacky way to switch some cairo_* methods to be found
+        # on the module object itself.
+        return '*modulemethod'
     elif k.startswith('cairo_'):
         cls = 'cairo'
     else:
@@ -422,6 +438,9 @@ for k, m in methods.items():
         continue
     elif selftype != 'void' and not selftype.endswith('*'):
         continue
+    cls = classof(k)
+    if cls == '*modulemethod':
+        m.params[0:0] = ['']
     try:
         casts = list(map(lambda x: coerce2gtk(x[0], 'argv[' + str(x[1]) + ']'), 
                     zip(m.params[1:], itertools.count())))
@@ -436,6 +455,8 @@ for k, m in methods.items():
     elif selftype == 'void':
         print("  " + k + "(" + ','.join(casts) + ');')
         print("  return none;")
+    elif cls == '*modulemethod':
+        coercereturn(m, "  " + k + "(" + ','.join(casts) + ')')
     else:
         if selftype == 'cairo_t *':
             print("    cairo_t *s = ((struct GraceCairoT*)self)->value;")
@@ -451,8 +472,10 @@ for k, m in methods.items():
         else:
             coercereturn(m, "  " + k + "(s)")
     print("}")
-    cls = classof(k)
-    classes[cls].append(k)
+    if cls == '*modulemethod':
+        modulemethods.append(k)
+    else:
+        classes[cls].append(k)
 
 for cls in classes:
     if cls != 'widget' and cls != 'container':
@@ -563,6 +586,20 @@ Object grace_gtk_text_buffer_create_tag(Object self, int argc, int *argcv,
     return o;
 }
 """)
+elif mod == 'cairo':
+    print("""
+ClassData GraceCairoSurfaceT;
+Object alloc_CairoSurfaceT(cairo_surface_t *c) {
+    if (!GraceCairoSurfaceT) {
+        GraceCairoSurfaceT = alloc_class("CairoT", 2);
+    }
+    Object o = alloc_obj(sizeof(struct GraceGtkWidget) - sizeof(struct Object),
+         GraceCairoSurfaceT);
+    struct GraceGtkWidget *ggw = (struct GraceGtkWidget *)o;
+    ggw->widget = (GtkWidget *)c;
+    return o;
+}
+""")
 
 gtk_size = len(classes) + len(enums) + 3
 print("""
@@ -583,6 +620,8 @@ for x in enums:
 for x in usedconstructors:
     cls = x[4:-4]
     print("    add_Method(c, \"" + cls + "\", &grace_" + x + ");")
+for x in modulemethods:
+    print("    add_Method(c, \"" + x[len(mod)+1:] + "\", &grace_" + x + ");")
 if mod == 'gtk':
     print("    add_Method(c, \"main\", &grace_gtk_main);")
     print("    add_Method(c, \"main_quit\", &grace_gtk_main_quit);")
