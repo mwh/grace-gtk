@@ -410,6 +410,8 @@ def coercereturn(m, s, post=[]):
         ret = "alloc_CairoT(" + s + ")"
     elif m.returns == 'cairo_public cairo_surface_t *':
         ret = "alloc_CairoSurfaceT(" + s + ")"
+    elif m.returns == 'GtkWidget *':
+        ret = "alloc_GtkWidget((GtkWidget *)(" + s + "))"
     elif m.returns == 'GdkWindow *':
         ret = "alloc_GtkWidget((GtkWidget *)(" + s + "))"
     elif m.returns == 'GtkTextBuffer *':
@@ -519,6 +521,9 @@ for k, m in methods.items():
     else:
         classes[cls].append(k)
 
+asMethod = {}
+for cls in classes:
+    asMethod[cls] = MOD + "_as_" + cls
 for cls in classes:
     if cls != 'widget' and cls != 'container':
         if 'widget' in classes:
@@ -527,6 +532,18 @@ for cls in classes:
             classes[cls].extend(classes['container'])
     if cls == 'vbox' or cls == 'hbox':
         classes[cls].extend(classes['box'])
+    print("ClassData alloc_class_" + MOD + cls + "();")
+    print("Object grace_" + MOD + "_as_" + cls + "(Object self,"
+          + "int argc, int *argcv, Object *argv, int flags) {")
+    print("""    GtkWidget *w = ((struct GraceGtkWidget *)self)->widget;
+    Object o = alloc_obj(sizeof(struct GraceGtkWidget)- sizeof(struct Object),
+         alloc_class_""" + MOD + cls + """());
+    struct GraceGtkWidget *ggw = (struct GraceGtkWidget *)o;
+    ggw->widget = w;
+    return o;
+}""")
+    for cls2 in classes:
+        classes[cls].append(asMethod[cls2])
 
 if 'free' in classes:
     del classes['free']
@@ -559,6 +576,8 @@ for cls in classes:
             gnm = gnm[4:]
         elif gnm.startswith('set_') and len(methods[k].params) == 2:
             gnm = gnm[4:] + ":="
+        elif k.startswith(MOD + '_as_'):
+            gnm = "as_" + gnm
         print("  add_Method({}{}, \"{}\", &grace_{});".format(MOD, cls, 
             gnm, k))
     print("  return " + MOD + cls + ";")
