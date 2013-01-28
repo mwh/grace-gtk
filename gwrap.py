@@ -119,7 +119,7 @@ def coerce2gtk(dest, src, pre, post):
     global tmp_count
     if '*' in dest:
         dest = dest.replace('\t', ' ')
-        dest = re.sub(' +', ' ', dest.partition('*')[0].strip()) + ' *'
+        dest = re.sub(' +', ' ', dest.rpartition('*')[0].strip()) + ' *'
     else:
         dest = dest.rpartition(' ')[0].strip()
     if dest == 'const gchar *' or dest == 'const gchar*':
