@@ -33,6 +33,8 @@ da.app_paintable := true
 
 var surface
 var scale := 1
+def maxHeight = gdk.screen_get_default.height * 0.9
+def maxWidth = gdk.screen_get_default.width * 0.9
 method setUpImage {
     surface := cairo.image_surface_create_from_png(filename)
     if ((surface.width * surface.height) == 0) then {
@@ -42,15 +44,15 @@ method setUpImage {
     var width := surface.width
     var height := surface.height
     scale := 1
-    if (width > 800) then {
-        scale := 800 / width
+    if (width > maxWidth) then {
+        scale := maxWidth / width
         height := height * scale
-        width := 800
+        width := maxWidth
     }
-    if (height > 800) then {
-        scale := 800 / surface.height
+    if (height > maxHeight) then {
+        scale := maxHeight / surface.height
         width := surface.width * scale
-        height := 800
+        height := maxHeight
     }
     da.set_size_request(width, height)
     window.title := "Image viewer - {filename} ({surface.width}x{surface.height}: {(scale*100).truncate}%) - {index - 1}/{sys.argv.size-1}"

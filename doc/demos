@@ -26,7 +26,9 @@ bindings:
 - pngviewer.grace is a simple image viewer that can only display PNG
   images. The images are loaded using Cairo's built-in PNG
   functionality, cairo.image_surface_create_from_png, and scaled to fit
-  the window. Multiple images may be given on the command-line and
-  cycled through with the spacebar and backspace keys. This program
-  includes code to support both GTK+ 2 and GTK+ 3 drawing areas.
+  the window. The window is scaled to fit on the screen using
+  information from gdk.screen_get_default. Multiple images may be given
+  on the command-line and cycled through with the spacebar and backspace
+  keys.  This program includes code to support both GTK+ 2 and GTK+ 3
+  drawing areas.
 
