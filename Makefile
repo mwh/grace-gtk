@@ -30,6 +30,7 @@ cairo.gso: cairo.c
 	gcc -Wall -o cairo.gso -I$(MINIGRACE_HEADERS) `pkg-config --cflags gtk+-$(GTK_VERSION)` $(UNICODE_LDFLAGS) -fPIC -shared cairo.c `pkg-config --libs gtk+-$(GTK_VERSION)`
 
 clean:
+	rm -f Makefile.conf
 	rm -f gtk.gso gtk.c
 	rm -f gdk.gso gdk.c
 	rm -f cairo.gso cairo.c
