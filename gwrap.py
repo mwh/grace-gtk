@@ -521,9 +521,6 @@ for k, m in methods.items():
     else:
         classes[cls].append(k)
 
-asMethod = {}
-for cls in classes:
-    asMethod[cls] = MOD + "_as_" + cls
 for cls in classes:
     if cls != 'widget' and cls != 'container':
         if 'widget' in classes:
@@ -542,8 +539,25 @@ for cls in classes:
     ggw->widget = w;
     return o;
 }""")
-    for cls2 in classes:
-        classes[cls].append(asMethod[cls2])
+    classes[cls].append(MOD + '_as')
+
+print("static ClassData AsClass;")
+print("Object grace_" + MOD + "_as(Object self, int argc, int *argcv, "
+      + "Object *argv, int flags) {")
+print('''
+    if (!AsClass) {
+        AsClass = alloc_class("'''+MOD+'''-as", '''+str(len(classes))+ ');')
+for cls in classes:
+    print('        add_Method(AsClass, "' + cls
+          + '", &grace_' + MOD + '_as_' + cls + ');')
+print('''
+    }
+    Object o = alloc_obj(sizeof(struct GraceGtkWidget) - sizeof(struct Object),
+        AsClass);
+    struct GraceGtkWidget *w = (struct GraceGtkWidget *)o;
+    w->widget = ((struct GraceGtkWidget *)self)->widget;
+    return o;
+}''')
 
 if 'free' in classes:
     del classes['free']
@@ -576,8 +590,6 @@ for cls in classes:
             gnm = gnm[4:]
         elif gnm.startswith('set_') and len(methods[k].params) == 2:
             gnm = gnm[4:] + ":="
-        elif k.startswith(MOD + '_as_'):
-            gnm = "as_" + gnm
         print("  add_Method({}{}, \"{}\", &grace_{});".format(MOD, cls, 
             gnm, k))
     print("  return " + MOD + cls + ";")
