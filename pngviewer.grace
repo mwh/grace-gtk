@@ -60,18 +60,21 @@ method setUpImage {
     da.queue_draw
 }
 setUpImage
-// For GTK 3
-da.on "draw" do { c ->
-    c.scale(scale, scale)
-    c.set_source_surface(surface, 0, 0)
-    c.paint
-}
-// For GTK 2
-da.on "expose-event" do {
-    def c = gdk.cairo(da.window)
-    c.scale(scale, scale)
-    c.set_source_surface(surface, 0, 0)
-    c.paint
+if (gtk.GTK_MAJOR_VERSION == 3) then {
+    // For GTK 3, use "draw"
+    da.on "draw" do { c ->
+        c.scale(scale, scale)
+        c.set_source_surface(surface, 0, 0)
+        c.paint
+    }
+} else {
+    // For GTK 2, use "expose-event" and make your own Cairo context
+    da.on "expose-event" do {
+        def c = gdk.cairo(da.window)
+        c.scale(scale, scale)
+        c.set_source_surface(surface, 0, 0)
+        c.paint
+    }
 }
 accelgroup.accel_connect(platform.gdk.GDK_KEY_space, {
     index := index + 1
