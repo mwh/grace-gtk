@@ -41,7 +41,7 @@ kinds = set([
     'GtkWidget *', 'cairo_t *', 'GdkWindow *', 'cairo_public void',
     'GtkOrientation', 'GtkAccelGroup*', 'GtkTextBuffer *', 'GtkTextIter *',
     'gchar *', 'gint', 'cairo_public cairo_surface_t *',
-    'cairo_public int'
+    'cairo_public int', 'GdkScreen *'
 ])
 
 included = set(['gtk/gtkaccelmap.h', 'gtk/gtkaboutdialog.h',
@@ -148,6 +148,8 @@ def coerce2gtk(dest, src, pre, post):
         return '(GtkTextIter *)(((struct GraceGtkWidget*)' + src + ')->widget)'
     elif dest == 'GtkAccelGroup *':
         return '(GtkAccelGroup *)(((struct GraceGtkWidget*)' + src + ')->widget)'
+    elif dest == 'GdkScreen *':
+        return '(GdkScreen *)(((struct GraceGtkWidget*)' + src + ')->widget)'
     elif dest == 'cairo_surface_t *':
         return '(cairo_surface_t *)(((struct GraceGtkWidget*)' + src + ')->widget)'
     elif dest == 'GtkAdjustment *':
@@ -259,6 +261,7 @@ static void grace_gtk_callback_block0(GtkWidget *widget, gpointer block) {
 Object alloc_CairoT(cairo_t *);
 Object alloc_CairoSurfaceT(cairo_surface_t *);
 Object alloc_GdkEvent(GdkEvent *);
+Object alloc_GdkScreen(GdkScreen *);
 static void grace_gtk_callback_block1(GtkWidget *widget, cairo_t *tmp1,
       gpointer block) {
     gc_pause();
@@ -411,6 +414,8 @@ def coercereturn(m, s, post=[]):
         ret = "alloc_GtkWidget((GtkWidget *)(" + s + "))"
     elif m.returns == 'GtkTextBuffer *':
         ret = "alloc_GtkTextBuffer((GtkTextBuffer *)(" + s + "))"
+    elif m.returns == 'GdkScreen *':
+        ret = "alloc_GdkScreen((GdkScreen *)(" + s + "))"
     elif m.returns == 'gboolean':
         ret = "alloc_Boolean(" + s + ")"
     elif m.returns == 'gint' or m.returns == 'cairo_public int':
@@ -491,8 +496,7 @@ for k, m in methods.items():
     if selftype == 'void' and m.returns == 'gint':
         coercereturn(m, "  " + k + "()", post)
     elif selftype == 'void':
-        print("  " + k + "(" + ','.join(casts) + ');')
-        print("  return none;")
+        coercereturn(m, "  " + k + "(" + ','.join(casts) + ')')
     elif cls == '*modulemethod':
         coercereturn(m, "  " + k + "(" + ','.join(casts) + ')', post)
     else:
@@ -576,6 +580,13 @@ Object grace_gdk_cairo_create(Object self, int nparts, int *argcv,
           Object *argv, int flags) {
     struct GraceGtkWidget *w = (struct GraceGtkWidget *)argv[0];
     return alloc_CairoT(gdk_cairo_create((GdkWindow *)(w->widget)));
+}
+Object alloc_GdkScreen(GdkScreen *screen) {
+    Object o = alloc_obj(sizeof(struct GraceGtkWidget) - sizeof(struct Object),
+         alloc_class_GDKscreen());
+    struct GraceGtkWidget *ggw = (struct GraceGtkWidget *)o;
+    ggw->widget = (GtkWidget *)screen;
+    return o;
 }
 """)
 elif mod == 'gtk':
@@ -667,6 +678,7 @@ if mod == 'gtk':
     print("    add_Method(c, \"text_iter\", &grace_gtk_text_iter_new);")
 elif mod == 'gdk':
     print("    add_Method(c, \"cairo\", &grace_gdk_cairo_create);")
+    print("    add_Method(c, \"screen_get_default\", &grace_gdk_screen_get_default);")
 print("    " + mod + "module = alloc_obj(sizeof(Object), c);")
 print("    return " + mod + "module;")
 print("}")
