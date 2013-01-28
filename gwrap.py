@@ -84,6 +84,8 @@ def process_file(fn):
             line = re.sub('#.*', '', line)
         line = line.replace('\n', ' ').strip()
         line = re.sub(' +\*', ' *', line)
+        if line.startswith('GDK_AVAILABLE_IN_'):
+            line = line.partition(' ')[2]
         for k in kinds:
             if line.startswith(k) and '(' in line:
                 name = line[len(k):].strip().split(' ', 1)[0]
