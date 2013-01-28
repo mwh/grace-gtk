@@ -114,7 +114,9 @@ for f in sys.argv[2:]:
 class FailedCoerce(Exception):
     pass
 
-def coerce2gtk(dest, src):
+tmp_count = 0
+def coerce2gtk(dest, src, pre, post):
+    global tmp_count
     if '*' in dest:
         dest = dest.replace('\t', ' ')
         dest = re.sub(' +', ' ', dest.partition('*')[0].strip()) + ' *'
@@ -150,6 +152,21 @@ def coerce2gtk(dest, src):
         return '(cairo_surface_t *)(((struct GraceGtkWidget*)' + src + ')->widget)'
     elif dest == 'GtkAdjustment *':
         return 'NULL'
+    elif dest == 'gint *':
+        pre.append("Object tmp_obj_" + str(tmp_count) + ";")
+        pre.append("int parts_" + str(tmp_count) + "[] = {0};")
+        pre.append("gint tmp_gint_" + str(tmp_count)
+                   + " = integerfromAny(callmethod(" + src + ', "value", 1, '
+                   + 'parts_' + str(tmp_count) + ', &tmp_obj_'
+                   + str(tmp_count) + '));')
+        post.append('tmp_obj_' + str(tmp_count) + ' = alloc_Float64(tmp_gint_'
+                   + str(tmp_count) + ');')
+        post.append('parts_' + str(tmp_count) + '[0] = 1;')
+        post.append('callmethod(' + src + ', "value:=", 1, parts_'
+                    + str(tmp_count) + ', &tmp_obj_' + str(tmp_count) + ');')
+        ret = '&tmp_gint_' + str(tmp_count)
+        tmp_count = tmp_count + 1
+        return ret
     else:
         raise FailedCoerce(dest)
         return '/*unknown: ' + dest + '*/ NULL'
@@ -160,7 +177,8 @@ def doconstructor(k, m):
         return
     casts = []
     try:
-        casts = list(map(lambda x: coerce2gtk(x[0], 'argv[' + str(x[1]) + ']'), 
+        casts = list(map(lambda x: coerce2gtk(x[0], 'argv[' + str(x[1]) +
+                                              ']', [], []),
                     zip(m.params, itertools.count())))
     except FailedCoerce as e:
         if m.params[0] != 'void':
@@ -380,26 +398,35 @@ static Object grace_g_object_set(Object self, int argc, int *argcv,
 }
 """)
 
-def coercereturn(m, s):
+def coercereturn(m, s, post=[]):
+    ret = 'none'
     if (m.returns == 'const gchar *' or m.returns == 'const gchar*' or
             m.returns == 'gchar *'):
-        print("    return alloc_String(" + s + ");")
+        ret = "alloc_String(" + s + ")"
     elif m.returns == 'cairo_t *':
-        print("    return alloc_CairoT(" + s + ");")
+        ret = "alloc_CairoT(" + s + ")"
     elif m.returns == 'cairo_public cairo_surface_t *':
-        print("    return alloc_CairoSurfaceT(" + s + ");")
+        ret = "alloc_CairoSurfaceT(" + s + ")"
     elif m.returns == 'GdkWindow *':
-        print("    return alloc_GtkWidget((GtkWidget *)(" + s + "));")
+        ret = "alloc_GtkWidget((GtkWidget *)(" + s + "))"
     elif m.returns == 'GtkTextBuffer *':
-        print("    return alloc_GtkTextBuffer((GtkTextBuffer *)(" + s + "));")
+        ret = "alloc_GtkTextBuffer((GtkTextBuffer *)(" + s + "))"
     elif m.returns == 'gboolean':
-        print("    return alloc_Boolean(" + s + ");")
+        ret = "alloc_Boolean(" + s + ")"
     elif m.returns == 'gint' or m.returns == 'cairo_public int':
-        print("    return alloc_Float64(" + s + ");")
+        ret = "alloc_Float64(" + s + ")"
+    elif m.returns == 'void':
+        print("    " + s + ";")
+        pass
     else:
         print("    // Don't understand how to return '" + m.returns + "'.")
         print("    " + s + ";")
-        print("    return none;")
+    if post:
+        print("    Object retval = " + ret + ";")
+        for x in post:
+            print("    " + x)
+        ret = "retval;"
+    print("    return " + ret + ";")
 
 def classof(k):
     cls = ''
@@ -432,7 +459,10 @@ def classof(k):
     return cls
 
 for k, m in methods.items():
-    selftype = ''.join(m.params[0].partition('*')[0:2])
+    if '*' in m.params[0]:
+        selftype = ''.join(m.params[0].rpartition('*')[0:2])
+    else:
+        selftype = m.params[0]
     if k.endswith('_new'):
         constructors.append(k)
         classof(k)
@@ -444,8 +474,11 @@ for k, m in methods.items():
     cls = classof(k)
     if cls == '*modulemethod':
         m.params[0:0] = ['']
+    pre = []
+    post = []
     try:
-        casts = list(map(lambda x: coerce2gtk(x[0], 'argv[' + str(x[1]) + ']'), 
+        casts = list(map(lambda x: coerce2gtk(x[0], 'argv[' + str(x[1]) +
+                                              ']', pre, post),
                     zip(m.params[1:], itertools.count())))
     except FailedCoerce as e:
         print("// Failed " + k + ": could not coerce " + e.args[0])
@@ -453,13 +486,15 @@ for k, m in methods.items():
         continue
     print("Object grace_" + k + "(Object self, int argc, int *argcv, "
           + "Object *argv, int flags) {")
+    for x in pre:
+        print("  " + x)
     if selftype == 'void' and m.returns == 'gint':
-        coercereturn(m, "  " + k + "()")
+        coercereturn(m, "  " + k + "()", post)
     elif selftype == 'void':
         print("  " + k + "(" + ','.join(casts) + ');')
         print("  return none;")
     elif cls == '*modulemethod':
-        coercereturn(m, "  " + k + "(" + ','.join(casts) + ')')
+        coercereturn(m, "  " + k + "(" + ','.join(casts) + ')', post)
     else:
         if selftype == 'cairo_t *':
             print("    cairo_t *s = ((struct GraceCairoT*)self)->value;")
@@ -471,9 +506,9 @@ for k, m in methods.items():
                   + str(len(casts))
                   + ' arguments, got %i. Signature: ' + k + '('
                   + ', '.join(m.params[1:]) + ').", argcv[0]);')
-            coercereturn(m, "  " + k + "(s, " + ','.join(casts) + ')')
+            coercereturn(m, "  " + k + "(s, " + ','.join(casts) + ')', post)
         else:
-            coercereturn(m, "  " + k + "(s)")
+            coercereturn(m, "  " + k + "(s)", post)
     print("}")
     if cls == '*modulemethod':
         modulemethods.append(k)
