@@ -41,7 +41,7 @@ kinds = set([
     'GtkWidget *', 'cairo_t *', 'GdkWindow *', 'cairo_public void',
     'GtkOrientation', 'GtkAccelGroup*', 'GtkTextBuffer *', 'GtkTextIter *',
     'gchar *', 'gint', 'cairo_public cairo_surface_t *',
-    'cairo_public int', 'GdkScreen *'
+    'cairo_public int', 'GdkScreen *', 'GtkTextMark*'
 ])
 
 included = set(['gtk/gtkaccelmap.h', 'gtk/gtkaboutdialog.h',
@@ -146,6 +146,8 @@ def coerce2gtk(dest, src, pre, post):
         return 'integerfromAny(' + src + ')'
     elif dest == 'GtkTextTag *':
         return '(GtkTextTag *)(((struct GraceGtkWidget*)' + src + ')->widget)'
+    elif dest == 'GtkTextMark*' or dest == 'const GtkTextMark*':
+        return '(GtkTextMark *)(((struct GraceGtkWidget*)' + src + ')->widget)'
     elif dest == 'GtkTextIter *' or dest == 'const GtkTextIter *':
         return '(GtkTextIter *)(((struct GraceGtkWidget*)' + src + ')->widget)'
     elif dest == 'GtkAccelGroup *':
@@ -418,6 +420,8 @@ def coercereturn(m, s, post=[]):
         ret = "alloc_GtkWidget((GtkWidget *)(" + s + "))"
     elif m.returns == 'GtkTextBuffer *':
         ret = "alloc_GtkTextBuffer((GtkTextBuffer *)(" + s + "))"
+    elif m.returns == 'GtkTextMark*':
+        ret = "alloc_GtkTextMark((GtkTextMark *)(" + s + "))"
     elif m.returns == 'GdkScreen *':
         ret = "alloc_GdkScreen((GdkScreen *)(" + s + "))"
     elif m.returns == 'gboolean':
@@ -447,6 +451,8 @@ def classof(k):
         cls = 'text_view'
     elif k.startswith('gtk_text_buffer_'):
         cls = 'text_buffer'
+    elif k.startswith('gtk_text_mark_'):
+        cls = 'text_mark'
     elif k.startswith('gtk_text_iter_'):
         cls = 'text_iter'
     elif k.startswith('gtk_text_tag_'):
@@ -634,6 +640,13 @@ Object alloc_GtkWidget(GtkWidget *widget) {
 Object alloc_GtkTextBuffer(GtkTextBuffer *buf) {
     Object o = alloc_obj(sizeof(struct GraceGtkWidget) - sizeof(struct Object),
          alloc_class_GTKtext_buffer());
+    struct GraceGtkWidget *ggw = (struct GraceGtkWidget *)o;
+    ggw->widget = (GtkWidget *)buf;
+    return o;
+}
+Object alloc_GtkTextMark(GtkTextMark *mark) {
+    Object o = alloc_obj(sizeof(struct GraceGtkWidget) - sizeof(struct Object),
+         alloc_class_GTKtext_mark());
     struct GraceGtkWidget *ggw = (struct GraceGtkWidget *)o;
     ggw->widget = (GtkWidget *)buf;
     return o;
