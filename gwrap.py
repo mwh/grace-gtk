@@ -257,6 +257,7 @@ Object Object_NotEquals(Object, int, int*,
 
 Object alloc_GtkWidget(GtkWidget *w);
 Object alloc_GtkTextBuffer(GtkTextBuffer *buf);
+Object alloc_GtkTextMark(GtkTextMark *mark);
 Object grace_gtk_text_buffer_create_tag(Object self, int argc, int *argcv,
     Object *argv, int flags);
 static void grace_gtk_callback_block0(GtkWidget *widget, gpointer block) {
@@ -648,7 +649,7 @@ Object alloc_GtkTextMark(GtkTextMark *mark) {
     Object o = alloc_obj(sizeof(struct GraceGtkWidget) - sizeof(struct Object),
          alloc_class_GTKtext_mark());
     struct GraceGtkWidget *ggw = (struct GraceGtkWidget *)o;
-    ggw->widget = (GtkWidget *)buf;
+    ggw->widget = (GtkWidget *)mark;
     return o;
 }
 Object grace_gtk_text_iter_new(Object self, int argc, int *argcv,
