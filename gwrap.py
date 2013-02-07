@@ -41,7 +41,7 @@ kinds = set([
     'GtkWidget *', 'cairo_t *', 'GdkWindow *', 'cairo_public void',
     'GtkOrientation', 'GtkAccelGroup*', 'GtkTextBuffer *', 'GtkTextIter *',
     'gchar *', 'gint', 'cairo_public cairo_surface_t *',
-    'cairo_public int', 'GdkScreen *', 'GtkTextMark*'
+    'cairo_public int', 'GdkScreen *', 'GtkTextMark*', 'GtkTextMark *'
 ])
 
 included = set(['gtk/gtkaccelmap.h', 'gtk/gtkaboutdialog.h',
@@ -146,7 +146,7 @@ def coerce2gtk(dest, src, pre, post):
         return 'integerfromAny(' + src + ')'
     elif dest == 'GtkTextTag *':
         return '(GtkTextTag *)(((struct GraceGtkWidget*)' + src + ')->widget)'
-    elif dest == 'GtkTextMark*' or dest == 'const GtkTextMark*':
+    elif dest == 'GtkTextMark*' or dest == 'GtkTextMark *':
         return '(GtkTextMark *)(((struct GraceGtkWidget*)' + src + ')->widget)'
     elif dest == 'GtkTextIter *' or dest == 'const GtkTextIter *':
         return '(GtkTextIter *)(((struct GraceGtkWidget*)' + src + ')->widget)'
