@@ -1,11 +1,12 @@
 // GTK+ 2 drawing example (not compatible with GTK+ 3)
 import "gtk" as gtk
 import "gdk" as gdk
+import "sys" as sys
 
 if (gtk.GTK_MAJOR_VERSION != 2) then {
     print "Error: This example is only compatible with GTK+ 2."
     print "drawing.grace is the GTK+ 3 version of the drawing sample."
-    platform.sys.exit(1)
+    sys.exit(1)
 }
 
 def window = gtk.window(gtk.GTK_WINDOW_TOPLEVEL)
@@ -21,11 +22,11 @@ da.set_size_request(400, 300)
 vbox.add(da)
 vbox.add(button)
 window.add(vbox)
-window.add_events(platform.gdk.GDK_BUTTON_PRESS_MASK)
-window.add_events(platform.gdk.GDK_BUTTON1_MOTION_MASK)
+window.add_events(gdk.GDK_BUTTON_PRESS_MASK)
+window.add_events(gdk.GDK_BUTTON1_MOTION_MASK)
 window.on "destroy" do { gtk.main_quit }
 def accelgroup = gtk.accel_group
-accelgroup.accel_connect(platform.gdk.GDK_KEY_Escape, { gtk.main_quit })
+accelgroup.accel_connect(gdk.GDK_KEY_Escape, { gtk.main_quit })
 window.add_accel_group(accelgroup)
 
 da.app_paintable := true

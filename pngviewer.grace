@@ -18,15 +18,15 @@ if (!io.exists(filename)) then {
 def window = gtk.window(gtk.GTK_WINDOW_TOPLEVEL)
 window.title := "Image viewer"
 
-window.add_events(platform.gdk.GDK_BUTTON_PRESS_MASK)
-window.add_events(platform.gdk.GDK_BUTTON1_MOTION_MASK)
+window.add_events(gdk.GDK_BUTTON_PRESS_MASK)
+window.add_events(gdk.GDK_BUTTON1_MOTION_MASK)
 window.resizable := false
 
 def da = gtk.drawing_area
 window.add(da)
 window.on "destroy" do { gtk.main_quit }
 def accelgroup = gtk.accel_group
-accelgroup.accel_connect(platform.gdk.GDK_KEY_Escape, { gtk.main_quit })
+accelgroup.accel_connect(gdk.GDK_KEY_Escape, { gtk.main_quit })
 window.add_accel_group(accelgroup)
 
 da.app_paintable := true
@@ -76,7 +76,7 @@ if (gtk.GTK_MAJOR_VERSION == 3) then {
         c.paint
     }
 }
-accelgroup.accel_connect(platform.gdk.GDK_KEY_space, {
+accelgroup.accel_connect(gdk.GDK_KEY_space, {
     index := index + 1
     if (index > sys.argv.size) then {
         index := 2
@@ -84,7 +84,7 @@ accelgroup.accel_connect(platform.gdk.GDK_KEY_space, {
     filename := sys.argv.at(index)
     setUpImage
 })
-accelgroup.accel_connect(platform.gdk.GDK_KEY_BackSpace, {
+accelgroup.accel_connect(gdk.GDK_KEY_BackSpace, {
     index := index - 1
     if (index < 2) then {
         index := sys.argv.size
