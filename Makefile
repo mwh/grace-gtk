@@ -38,5 +38,7 @@ clean:
 	rm -f greet greet.c greet.gcn greet.gct
 	rm -f simpleeditor simpleeditor.c simpleeditor.gcn simpleeditor.gct
 	rm -f pngviewer pngviewer.c pngviewer.gcn pngviewer.gct
+	rm -f simplegraphics simplegraphics.c simplegraphics.gcn simplegraphics.gct
+	rm -f simplegraphics_example simplegraphics_example.c simplegraphics_example.gcn simplegraphics_example.gct
 
 .PHONY: clean all

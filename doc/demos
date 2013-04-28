@@ -32,3 +32,7 @@ bindings:
   keys.  This program includes code to support both GTK+ 2 and GTK+ 3
   drawing areas.
 
+- simplegraphics.grace is an implementation of a simple graphics API,
+  which has also been implemented for the JavaScript backend. A simple
+  example program simplegraphics_example.grace exercises its
+  functionality, and runs equally on both platforms.
