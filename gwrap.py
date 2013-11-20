@@ -228,7 +228,7 @@ for f in sys.argv[2:]:
 print("""
 #include <stdlib.h>
 #include <string.h>
-extern Object none;
+extern Object done;
 
 struct GraceGtkWidget {
     int32_t flags;
@@ -407,7 +407,7 @@ static Object grace_g_object_set(Object self, int argc, int *argcv,
 """)
 
 def coercereturn(m, s, post=[]):
-    ret = 'none'
+    ret = 'done'
     if (m.returns == 'const gchar *' or m.returns == 'const gchar*' or
             m.returns == 'gchar *'):
         ret = "alloc_String(" + s + ")"
