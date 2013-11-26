@@ -1,5 +1,7 @@
 import "simplegraphics" as g
 
+g.initialise
+
 for (1..50) do {i->
     g.drawLineFrom(i * 10, 0)to(i * 10, 250)in(g.white)
 }

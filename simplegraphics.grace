@@ -8,21 +8,9 @@ if (gtk.GTK_MAJOR_VERSION != 3) then {
     sys.exit(1)
 }
 
-def window = gtk.window(gtk.GTK_WINDOW_TOPLEVEL)
-window.title := "Simple graphics"
-window.on "destroy" do { gtk.main_quit }
-window.set_default_size(500, 250)
-
-def da = gtk.drawing_area
-da.set_size_request(500, 250)
-window.add(da)
-
+var window
+var da
 def instructions = collections.list.new
-da.on "draw" do { c->
-    for (instructions) do {inst->
-        inst.apply(c)
-    }
-}
 
 def Colour = object {
     method r(r')g(g')b(b') {
@@ -86,6 +74,23 @@ def Pi = 3.141592653589793
 
 def white = Colour.r 255 g 255 b 255
 def black = Colour.r 0 g 0 b 0
+
+method initialise {
+    window := gtk.window(gtk.GTK_WINDOW_TOPLEVEL)
+    window.title := "Simple graphics"
+    window.on "destroy" do { gtk.main_quit }
+    window.set_default_size(500, 250)
+
+    da := gtk.drawing_area
+    da.set_size_request(500, 250)
+    window.add(da)
+
+    da.on "draw" do { c->
+        for (instructions) do {inst->
+            inst.apply(c)
+        }
+    }
+}
 
 method fillRect(x, y, w, h)with(col) {
     instructions.push { ctx ->
