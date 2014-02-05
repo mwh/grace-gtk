@@ -34,15 +34,7 @@ if len(sys.argv) < 2:
 
 basedir = os.path.dirname(os.path.dirname(sys.argv[1])) + '/'
 mod = os.path.basename(sys.argv[1]).replace('.h', '')
-print("//basedir = " + basedir)
-print("//mod = " + mod)
 
-#KJX
-# if mod == 'glib':
-#     print("//making allowance for glib.\n")
-#     basedir = basedir + "glib-2.0/"
-#     mod = 'g'
-#end KJX
 MOD = mod.upper()
 
 kinds = set([
@@ -50,9 +42,7 @@ kinds = set([
     'GtkWidget *', 'cairo_t *', 'GdkWindow *', 'cairo_public void',
     'GtkOrientation', 'GtkAccelGroup*', 'GtkTextBuffer *', 'GtkTextIter *',
     'gchar *', 'gint', 'cairo_public cairo_surface_t *',
-#KJX
     'gunit', 'GSourceFunc',
-#KJX end
     'cairo_public int', 'GdkScreen *', 'GtkTextMark*', 'GtkTextMark *',
     'cairo_font_slant_t', 'cairo_font_weight_t',
     'GtkFileChooserAction',  'GtkWindow *' ])
@@ -130,7 +120,7 @@ class FailedCoerce(Exception):
     pass
 
 tmp_count = 0
-def coerce2gtk(dest, src, pre, post, hack):
+def coerce2gtk(dest, src, pre, post):
     global tmp_count
     if '*' in dest:
         dest = dest.replace('\t', ' ')
@@ -179,8 +169,6 @@ def coerce2gtk(dest, src, pre, post, hack):
         return 'integerfromAny(' + src + ')'
     elif dest ==  'GtkFileChooserAction':
         return 'integerfromAny(' + src + ')'
-#    elif hack == 'gtk_file_chooser_dialog_new':
-#        return 'integerfromAny(' + src + ')'
     elif (dest == 'gint *'):
         pre.append("Object tmp_obj_" + str(tmp_count) + ";")
         pre.append("int parts_" + str(tmp_count) + "[] = {0};")
@@ -207,7 +195,7 @@ def doconstructor(k, m):
     casts = []
     try:
         casts = list(map(lambda x: coerce2gtk(x[0], 'argv[' + str(x[1]) +
-                                              ']', [], [], k),
+                                              ']', [], []),
                     zip(m.params, itertools.count())))
     except FailedCoerce as e:
         if m.params[0] != 'void':
@@ -526,7 +514,7 @@ for k, m in methods.items():
     post = []
     try:
         casts = list(map(lambda x: coerce2gtk(x[0], 'argv[' + str(x[1]) +
-                                              ']', pre, post, ""),
+                                              ']', pre, post),
                     zip(m.params[1:], itertools.count())))
     except FailedCoerce as e:
         print("// Failed " + k + ": could not coerce " + e.args[0])
@@ -721,23 +709,6 @@ Object grace_gtk_text_buffer_create_tag(Object self, int argc, int *argcv,
     ggw->widget = (GtkWidget *)tag;
     return o;
 }
-Object grace_gtk_file_chooser_dialog_new(Object self, int argc, int *argcv,
-    Object *argv, int flags) {
-    if (argc < 1 || argcv[0] < 7)
-        gracedie("file_chooser_dialog requires 7 arguments, got %i. Signature: file_chooser_dialog(const gchar *title, GtkWindow *parent, GtkFileChooserAction  action, const gchar *first_button_text, ...).", argcv[0]);
-    GtkWidget *w = gtk_file_chooser_dialog_new(
-     (const gchar*)grcstring(argv[0]),
-     (GtkWindow*)(((struct GraceGtkWidget*)argv[1])->widget),
-      integerfromAny(argv[2]),
-     (const gchar *)grcstring(argv[3]),integerfromAny(argv[4]),
-     (const gchar *)grcstring(argv[5]),integerfromAny(argv[6]), NULL);
-
-    Object o = alloc_obj(sizeof(struct GraceGtkWidget) - sizeof(struct Object),
-         alloc_class_GTKfile_chooser_dialog());
-    struct GraceGtkWidget *ggw = (struct GraceGtkWidget *)o;
-    ggw->widget = w;
-    return o;
-}
 static gboolean grace_gclosure_callback_gboolean(Object block) {
     Object rv = callmethod(block, "apply", 0, NULL, NULL);
     return (gboolean)istrue(rv);
@@ -746,7 +717,7 @@ static Object grace_g_timeout_add_impl(Object self, int argc, int *argcv,
       Object *argv, int flags, int seconds) {
 //note: ignores self!
     if (argc < 1 || argcv[0] < 2)
-        gracedie("glib method requires 2 arguments, got %i. Hacked Signature: g_timeout_addObject(interval, block).", argcv[0]);
+        gracedie("glib method requires 2 arguments, got %i.", argcv[0]);
 
     //first arg is number of milliseconds / seconds
     Object other = argv[0];
@@ -755,7 +726,6 @@ static Object grace_g_timeout_add_impl(Object self, int argc, int *argcv,
 
     //second arg is block
     Object block = argv[1];
-//    assertClass(block, Block);  //KJX this breaks, no idea why!
     gc_root(block);
 
     guint rv;
@@ -780,7 +750,7 @@ static Object grace_g_source_remove(Object self, int argc, int *argcv,
       Object *argv, int flags, int seconds) {
 //note: ignores self!
     if (argc < 1 || argcv[0] < 1)
-        gracedie("glib method requires 1 arguments, got %i. Hacked Signature: g_source_remove(tag).", argcv[0]);
+        gracedie("glib method requires 1 arguments, got %i.", argcv[0]);
 
     //first arg is tag returned by e.g. g_timeout_add
     Object other = argv[0];
@@ -793,7 +763,7 @@ static Object grace_g_source_remove(Object self, int argc, int *argcv,
 """)
 elif mod == 'cairo':
     print("""
-Object Alloc_CairoSurfaceT(cairo_surface_t *c) {
+Object alloc_CairoSurfaceT(cairo_surface_t *c) {
     Object o = alloc_obj(sizeof(struct GraceGtkWidget) - sizeof(struct Object),
          alloc_class_CAIROimage_surface());
     struct GraceGtkWidget *ggw = (struct GraceGtkWidget *)o;
@@ -802,7 +772,8 @@ Object Alloc_CairoSurfaceT(cairo_surface_t *c) {
 }
 """)
 
-gtk_size = len(classes) + len(enums) + 3
+# We need method space for all classes & enums, and the methods defined below.
+gtk_size = len(classes) + len(enums) + len(modulemethods) + 9
 print("""
 Object """ + mod + """module;
 Object module_""" + mod + """_init() {
@@ -828,7 +799,6 @@ if mod == 'gtk':
     print("    add_Method(c, \"main_quit\", &grace_gtk_main_quit);")
     print("    add_Method(c, \"connect\", &grace_g_signal_connect);")
     print("    add_Method(c, \"text_iter\", &grace_gtk_text_iter_new);")
-    print("    add_Method(c, \"file_chooser_dialog\",&grace_gtk_file_chooser_dialog_new);")
     print("    add_Method(c, \"main_iteration\", &grace_gtk_main_iteration);")
     print("    add_Method(c, \"events_pending\", &grace_gtk_events_pending);")
     print("    add_Method(c, \"timeout_add\", &grace_g_timeout_add);")
@@ -837,9 +807,6 @@ if mod == 'gtk':
 elif mod == 'gdk':
     print("    add_Method(c, \"cairo\", &grace_gdk_cairo_create);")
     print("    add_Method(c, \"screen_get_default\", &grace_gdk_screen_get_default);")
-
-
 print("    " + mod + "module = alloc_obj(sizeof(Object), c);")
 print("    return " + mod + "module;")
 print("}")
-
