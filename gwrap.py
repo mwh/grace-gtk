@@ -209,7 +209,7 @@ def doconstructor(k, m):
         print('        gracedie("' + k[4:-4] + ' requires ' + str(len(casts))
               + ' arguments, got %i. Signature: ' + k[4:-4] + '('
               + ', '.join(m.params) + ').", argcv[0]);')
-        print("    GtkWidget *w = " + k + "(" + ','.join(casts) + ');')
+        print("    GtkWidget *w = (GtkWidget *)" + k + "(" + ','.join(casts) + ');')
     elif casts:
         # All parameters are passed as nulls - don't enforce a size
         print("    GtkWidget *w = " + k + "(" + ','.join(casts) + ');')
@@ -731,10 +731,10 @@ static Object grace_g_timeout_add_impl(Object self, int argc, int *argcv,
     guint rv;
     if (seconds) {
         rv = g_timeout_add_seconds(interval,
-              G_CALLBACK(grace_gclosure_callback_gboolean), block);
+              (GSourceFunc)grace_gclosure_callback_gboolean, block);
     } else {
         rv = g_timeout_add(interval,
-              G_CALLBACK(grace_gclosure_callback_gboolean), block);
+              (GSourceFunc)grace_gclosure_callback_gboolean, block);
     }
     return alloc_Float64(rv);
 }
@@ -747,7 +747,7 @@ static Object grace_g_timeout_add_seconds(Object self, int argc, int *argcv,
     return grace_g_timeout_add_impl(self, argc, argcv, argv, flags, 1);
 }
 static Object grace_g_source_remove(Object self, int argc, int *argcv,
-      Object *argv, int flags, int seconds) {
+      Object *argv, int flags) {
 //note: ignores self!
     if (argc < 1 || argcv[0] < 1)
         gracedie("glib method requires 1 arguments, got %i.", argcv[0]);
