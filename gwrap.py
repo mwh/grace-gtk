@@ -421,6 +421,8 @@ static Object grace_g_object_set(Object self, int argc, int *argcv,
     return self;
 }
 """)
+if mod == 'gtk':
+    print("static void displayUnsupportedWarning();")
 
 def coercereturn(m, s, post=[]):
     ret = 'done'
@@ -522,6 +524,8 @@ for k, m in methods.items():
         continue
     print("Object grace_" + k + "(Object self, int argc, int *argcv, "
           + "Object *argv, int flags) {")
+    if k == 'gtk_main':
+        print("  displayUnsupportedWarning();")
     for x in pre:
         print("  " + x)
     if selftype == 'void' and m.returns == 'gint':
@@ -759,6 +763,37 @@ static Object grace_g_source_remove(Object self, int argc, int *argcv,
 
     gboolean rv = g_source_remove(tag);
     return alloc_Boolean(rv);
+}
+static void displayUnsupportedWarning() {
+    if (getenv("GRACE_GTK_DISABLE_WARNING"))
+        // Welcome, readers of the source!
+        return;
+    GtkWidget *window = gtk_dialog_new();
+    gtk_dialog_add_button(GTK_DIALOG(window), "I understand",
+        GTK_RESPONSE_ACCEPT);
+    gtk_dialog_add_button(GTK_DIALOG(window), "I do not understand",
+        GTK_RESPONSE_REJECT);
+    gtk_window_set_title(GTK_WINDOW(window), "Warning");
+    GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(window));
+    GtkWidget *label = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(label),
+        "grace-gtk is <span color=\\"red\\" weight=\\"bold\\">"
+        "TOTALLY UNSUPPORTED</span> and <span color=\\"red\\" "
+        "weight=\\"bold\\">SHOULD NOT BE USED</span>."
+        "\\n\\nIf you do, figuring it out is up to you."
+        "\\nIf it breaks, you get to keep both pieces. "
+        "\\nPatches are welcome! Source: https://github.com/mwh/grace-gtk");
+    gtk_container_add(GTK_CONTAINER(content_area), label);
+    gtk_widget_show_all(content_area);
+    gint response = gtk_dialog_run(GTK_DIALOG(window));
+    if (response == GTK_RESPONSE_ACCEPT)
+        gtk_widget_destroy(window);
+    else {
+        fputs("\\e[1;31mTerminating; user did not understand the nature of "
+            "the software they were using.\\e[0m\\n", stderr);
+        gtk_widget_destroy(window);
+        exit(1);
+    }
 }
 """)
 elif mod == 'cairo':
