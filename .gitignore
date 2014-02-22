@@ -2,7 +2,11 @@ gtk.c
 *.gso
 *.c
 *.gcn
+*.gct
 stdin_minigrace
 drawing
 drawing2
 helloworld
+greet
+pngviewer
+simpleeditor
